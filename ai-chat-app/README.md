@@ -1,73 +1,37 @@
-# React + TypeScript + Vite
+## Summary
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Ships a single-page chat UI built on **React 19 + Vite + TypeScript ** against an in-browser **MSW** mock that implements the [API contract](../API_CONTRACT.md) the Week-3 backend will need to satisfy. The user picks an identity, sees their conversations on the left, opens a thread on the right, and sends messages with optimistic rendering + rollback on simulated failure.
 
-Currently, two official plugins are available:
+## Components
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+features/
+├── auth/
+│   ├── components/AuthScreen      ← user picker (loading / error / empty / list states)
+│   └── hooks/useAvailableUsers    ← reducer-backed users fetch
+└── chat/
+    ├── hooks/
+    │   ├── useConversations       ← reducer-backed list, filtered by participant + sorted desc
+    │   ├── useMessages            ← reducer-backed thread + optimistic send/rollback
+    │   └── messageThreadReducer   ← load/start, load/success, load/error,
+    │                                send/optimistic, send/success, send/error
+    └── components/
+        ├── ChatApp                ← two-pane layout, owns selectedConversationId + draft
+        ├── ConversationList       ← sidebar, aria-pressed selection
+        ├── MessageThread          ← scrollable list, auto-scroll to bottom
+        └── MessageComposer        ← controlled textarea, Enter sends, Shift+Enter newlines
+components/
+├── Skeleton                       ← shimmer placeholder
+└── Toast                          ← auto-dismissing alert for send errors
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## States handled
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Every async surface renders all four branches
+| Surface | Loading | Empty | Error | Success |
+|---|---|---|---|---|
+| **`AuthScreen`** | "Loading users…" | "No users available." | inline alert with `error.message` | one `<button>` per user |
+| **`ConversationList`** | three `<Skeleton>` rows | "No conversations yet." (`data-testid="conversations-empty"`) | `role="alert"` with `error.message` | sorted list, `aria-pressed` on the selected row |
+| **`MessageThread`** (no selection) | — | "Select a conversation to start chatting." | — | — |
+| **`MessageThread`** (selected) | three `<Skeleton>` bubbles | "No messages yet. Say hi." | `role="alert"` | `<ul>` of bubbles, outgoing vs. incoming styling |
+| **Send** | `isSending: true`, optimistic bubble visible | — | rollback + `<Toast role="alert">` | temp message swapped for server-generated `Message` |
