@@ -13,14 +13,28 @@
   margin: 0 0 8px;
 }
 
-.userList {
+.form {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 10px;
-  justify-content: center;
+  width: 100%;
+  max-width: 320px;
 }
 
-.userButton {
+.label {
+  font-weight: 600;
+}
+
+.input {
+  padding: 10px 12px;
+  font-size: 1rem;
+}
+
+.error {
+  margin: 0;
+  color: #b00020;
+}
+
+.submitButton {
   padding: 10px 18px;
-  min-width: 120px;
 }
