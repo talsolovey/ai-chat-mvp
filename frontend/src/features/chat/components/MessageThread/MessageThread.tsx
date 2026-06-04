@@ -1,8 +1,17 @@
-import { useEffect, useMemo, useRef, type ReactElement } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  type ReactElement,
+  type UIEvent,
+} from "react";
 import MessageComposer from "../MessageComposer";
 import Skeleton from "../../../../components/Skeleton";
 import type { MessageThreadState } from "../../hooks/messageThreadReducer";
 import styles from "./MessageThread.module.css";
+
+const LOAD_OLDER_THRESHOLD_PX = 48;
 
 type MessageThreadProps = {
   thread: MessageThreadState;
@@ -11,6 +20,7 @@ type MessageThreadProps = {
   messageText: string;
   onMessageTextChange: (value: string) => void;
   onSendMessage: () => void;
+  onLoadOlder: () => void;
 };
 
 export default function MessageThread({
@@ -20,12 +30,14 @@ export default function MessageThread({
   messageText,
   onMessageTextChange,
   onSendMessage,
+  onLoadOlder,
 }: MessageThreadProps): ReactElement {
   const sortedMessages = useMemo(
     () => [...thread.messages].sort((a, b) => a.sentAt.localeCompare(b.sentAt)),
     [thread.messages],
   );
 
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const lastMessageId =
     sortedMessages.length > 0
@@ -36,11 +48,45 @@ export default function MessageThread({
     bottomRef.current?.scrollIntoView({ block: "end" });
   }, [lastMessageId]);
 
+  const distanceFromBottomRef = useRef(0);
+  const wasLoadingOlderRef = useRef(false);
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (el && wasLoadingOlderRef.current && !thread.isLoadingOlder) {
+      el.scrollTop = el.scrollHeight - distanceFromBottomRef.current;
+    }
+    wasLoadingOlderRef.current = thread.isLoadingOlder;
+  }, [thread.isLoadingOlder, thread.messages]);
+
+  const hasMore = thread.nextCursor !== null;
+
+  function handleScroll(event: UIEvent<HTMLDivElement>): void {
+    const el = event.currentTarget;
+    if (el.scrollTop <= LOAD_OLDER_THRESHOLD_PX && hasMore && !thread.isLoadingOlder) {
+      distanceFromBottomRef.current = el.scrollHeight - el.scrollTop;
+      onLoadOlder();
+    }
+  }
+
   return (
     <div className={styles.root}>
       <h2>Messages</h2>
 
-      <div data-testid="messages-scroll" className={styles.scroll}>
+      <div
+        ref={scrollRef}
+        data-testid="messages-scroll"
+        className={styles.scroll}
+        onScroll={handleScroll}
+      >
+        {thread.isLoadingOlder && (
+          <div
+            data-testid="messages-loading-older"
+            className={styles.loadingOlder}
+          >
+            Loading older messages…
+          </div>
+        )}
+
         {selectedConversationId == null && (
           <p data-testid="messages-no-selection" className={styles.statePrompt}>
             Select a conversation to start chatting.

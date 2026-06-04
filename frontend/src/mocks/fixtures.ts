@@ -7,22 +7,29 @@ export const users: User[] = [
   { id: "teammate", name: "Teammate" },
 ];
 
-export const conversations: Conversation[] = [
+const seedConversations: ReadonlyArray<Conversation> = [
   {
     id: "c1",
     title: "Frontend Support",
     lastMessageSnippet: "There it is. Stabilize that and you're good.",
     lastMessageAt: "2026-05-26T10:00:00.000Z",
-    participantIds: ["me", "support"],
+    userId: "me",
   },
   {
     id: "c2",
     title: "Project Chat",
     lastMessageSnippet: "Let's ship the MVP this week.",
     lastMessageAt: "2026-05-25T18:30:00.000Z",
-    participantIds: ["me", "teammate"],
+    userId: "me",
   },
 ];
+
+export const conversations: Conversation[] = [...seedConversations];
+
+export function resetConversations(): void {
+  conversations.length = 0;
+  conversations.push(...seedConversations);
+}
 
 const seedMessages: ReadonlyArray<Message> = [
   {
@@ -35,7 +42,7 @@ const seedMessages: ReadonlyArray<Message> = [
   {
     id: "m2",
     conversationId: "c1",
-    senderId: "support",
+    senderId: "system",
     sentAt: "2026-05-26T09:42:00.000Z",
     content: "Sure — what's happening?",
   },
@@ -49,7 +56,7 @@ const seedMessages: ReadonlyArray<Message> = [
   {
     id: "m4",
     conversationId: "c1",
-    senderId: "support",
+    senderId: "system",
     sentAt: "2026-05-26T09:48:00.000Z",
     content: "What's in the dependency array?",
   },
@@ -63,7 +70,7 @@ const seedMessages: ReadonlyArray<Message> = [
   {
     id: "m6",
     conversationId: "c1",
-    senderId: "support",
+    senderId: "system",
     sentAt: "2026-05-26T09:53:00.000Z",
     content: "Are the deps in the useEffect stable?",
   },
@@ -77,7 +84,7 @@ const seedMessages: ReadonlyArray<Message> = [
   {
     id: "m8",
     conversationId: "c1",
-    senderId: "support",
+    senderId: "system",
     sentAt: "2026-05-26T10:00:00.000Z",
     content: "There it is. Stabilize that and you're good.",
   },
@@ -91,7 +98,7 @@ const seedMessages: ReadonlyArray<Message> = [
   {
     id: "m10",
     conversationId: "c2",
-    senderId: "teammate",
+    senderId: "system",
     sentAt: "2026-05-25T18:30:00.000Z",
     content: "Let's ship the MVP this week.",
   },

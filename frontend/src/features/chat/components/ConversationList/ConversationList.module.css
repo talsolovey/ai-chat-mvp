@@ -8,6 +8,23 @@
   background: var(--surface);
 }
 
+.newForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.newInput {
+  padding: 8px 10px;
+  font-size: 0.9rem;
+}
+
+.newButton {
+  padding: 8px 12px;
+  font-size: 0.9rem;
+}
+
 .skeletonStack {
   display: flex;
   flex-direction: column;

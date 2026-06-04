@@ -3,7 +3,7 @@ export type Conversation = {
   title: string;
   lastMessageSnippet: string;
   lastMessageAt: string;
-  participantIds: string[];
+  userId: string;
 };
 
 export type Message = {
@@ -16,6 +16,12 @@ export type Message = {
 
 export type GetConversationsResponse = Conversation[];
 
+export type CreateConversationRequest = {
+  title: string;
+};
+
+export type CreateConversationResponse = Conversation;
+
 export type GetMessagesResponse = {
   messages: Message[];
   nextCursor: string | null;
@@ -23,7 +29,6 @@ export type GetMessagesResponse = {
 
 export type SendMessageRequest = {
   content: string;
-  senderId: string;
 };
 
 export type SendMessageResponse = Message;

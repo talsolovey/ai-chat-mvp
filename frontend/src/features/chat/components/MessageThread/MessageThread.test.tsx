@@ -25,7 +25,7 @@ const sampleMessages: Message[] = [
   {
     id: "m2",
     conversationId: "c1",
-    senderId: "support",
+    senderId: "system",
     sentAt: "2026-05-26T09:42:00.000Z",
     content: "Sure — what's happening?",
   },
@@ -40,6 +40,7 @@ const defaultProps: ThreadProps = {
   messageText: "",
   onMessageTextChange: noop,
   onSendMessage: noop,
+  onLoadOlder: noop,
 };
 
 function renderThread(overrides: Partial<ThreadProps> = {}) {

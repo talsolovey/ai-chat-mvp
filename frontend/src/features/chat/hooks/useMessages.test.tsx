@@ -63,7 +63,7 @@ describe("useMessages", () => {
     const result = await renderAndLoad("c1");
     const initialCount = result.current.thread.messages.length;
 
-    let sendPromise!: Promise<void>;
+    let sendPromise!: Promise<boolean>;
     await act(async () => {
       sendPromise = result.current.sendMessage("hello world");
     });
@@ -90,7 +90,7 @@ describe("useMessages", () => {
     const result = await renderAndLoad("c1");
     const initialCount = result.current.thread.messages.length;
 
-    let sendPromise!: Promise<void>;
+    let sendPromise!: Promise<boolean>;
     await act(async () => {
       sendPromise = result.current.sendMessage("/fail please");
     });

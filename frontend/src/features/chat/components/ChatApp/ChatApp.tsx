@@ -12,14 +12,27 @@ type ChatAppProps = {
 };
 
 export default function ChatApp({ currentUser }: ChatAppProps): ReactElement {
-  const { conversations, conversationsLoading, conversationsError } =
-    useConversations(currentUser);
+  const {
+    conversations,
+    conversationsLoading,
+    conversationsError,
+    createConversation,
+    updateConversationPreview,
+  } = useConversations(currentUser);
 
   const [selectedConversationId, setSelectedConversationId] = useState<
     string | null
   >(null);
 
-  const { thread, sendMessage, dismissSendError } = useMessages(
+  function handleCreateConversation(title: string): void {
+    void createConversation(title).then((conversation) => {
+      if (conversation) {
+        setSelectedConversationId(conversation.id);
+      }
+    });
+  }
+
+  const { thread, sendMessage, loadOlder, dismissSendError } = useMessages(
     selectedConversationId,
     currentUser.id,
   );
@@ -31,10 +44,15 @@ export default function ChatApp({ currentUser }: ChatAppProps): ReactElement {
       return;
     }
     const text = messageText.trim();
+    const conversationId = selectedConversationId;
     setMessageText("");
     void sendMessage(text).then((success) => {
       if (!success) {
         setMessageText(text);
+        return;
+      }
+      if (conversationId) {
+        updateConversationPreview(conversationId, text, new Date().toISOString());
       }
     });
   }
@@ -46,6 +64,7 @@ export default function ChatApp({ currentUser }: ChatAppProps): ReactElement {
           conversations={conversations}
           selectedConversationId={selectedConversationId}
           onSelectConversation={setSelectedConversationId}
+          onCreateConversation={handleCreateConversation}
           conversationsLoading={conversationsLoading}
           conversationsError={conversationsError}
         />
@@ -56,6 +75,7 @@ export default function ChatApp({ currentUser }: ChatAppProps): ReactElement {
           messageText={messageText}
           onMessageTextChange={setMessageText}
           onSendMessage={handleSend}
+          onLoadOlder={loadOlder}
         />
       </div>
 

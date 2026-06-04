@@ -6,12 +6,19 @@ export type MessageThreadState = {
   error: Error | null;
   isSending: boolean;
   sendError: Error | null;
+  nextCursor: string | null;
+  isLoadingOlder: boolean;
 };
+
+type Page = { messages: Message[]; nextCursor: string | null };
 
 export type MessageThreadAction =
   | { type: "load/start" }
-  | { type: "load/success"; payload: Message[] }
+  | { type: "load/success"; payload: Page }
   | { type: "load/error"; payload: Error }
+  | { type: "older/start" }
+  | { type: "older/success"; payload: Page }
+  | { type: "older/error" }
   | { type: "send/optimistic"; payload: Message }
   | { type: "send/success"; payload: Message; tempId: string }
   | { type: "send/error"; payload: Error; tempId: string }
@@ -23,6 +30,8 @@ export const initialMessageThreadState: MessageThreadState = {
   error: null,
   isSending: false,
   sendError: null,
+  nextCursor: null,
+  isLoadingOlder: false,
 };
 
 export function messageThreadReducer(
@@ -38,7 +47,9 @@ export function messageThreadReducer(
         ...state,
         isLoading: false,
         error: null,
-        messages: action.payload,
+        messages: action.payload.messages,
+        nextCursor: action.payload.nextCursor,
+        isLoadingOlder: false,
       };
 
     case "load/error":
@@ -47,7 +58,23 @@ export function messageThreadReducer(
         isLoading: false,
         error: action.payload,
         messages: [],
+        nextCursor: null,
+        isLoadingOlder: false,
       };
+
+    case "older/start":
+      return { ...state, isLoadingOlder: true };
+
+    case "older/success":
+      return {
+        ...state,
+        isLoadingOlder: false,
+        nextCursor: action.payload.nextCursor,
+        messages: [...action.payload.messages, ...state.messages],
+      };
+
+    case "older/error":
+      return { ...state, isLoadingOlder: false };
 
     case "send/optimistic":
       return {

@@ -13,14 +13,14 @@ const sampleConversations: Conversation[] = [
     title: "Frontend Support",
     lastMessageSnippet: "Sure, I can help with that.",
     lastMessageAt: "2026-05-26T10:00:00.000Z",
-    participantIds: ["me", "support"],
+    userId: "me",
   },
   {
     id: "c2",
     title: "Project Chat",
     lastMessageSnippet: "Let's ship the MVP this week.",
     lastMessageAt: "2026-05-25T18:30:00.000Z",
-    participantIds: ["me", "teammate"],
+    userId: "me",
   },
 ];
 
@@ -30,6 +30,7 @@ const defaultProps: ListProps = {
   conversations: sampleConversations,
   selectedConversationId: null,
   onSelectConversation: noop,
+  onCreateConversation: noop,
   conversationsLoading: false,
   conversationsError: null,
 };
@@ -88,5 +89,28 @@ describe("ConversationList", () => {
     expect(
       screen.getByRole("button", { name: /Project Chat/, pressed: false }),
     ).toBeInTheDocument();
+  });
+
+  it("calls onCreateConversation with the trimmed title from the new-conversation form", async () => {
+    const user = userEvent.setup();
+    const onCreate = vi.fn();
+    renderList({ onCreateConversation: onCreate });
+
+    await user.type(
+      screen.getByLabelText(/new conversation title/i),
+      "  Design sync  ",
+    );
+    await user.click(screen.getByRole("button", { name: /new conversation/i }));
+
+    expect(onCreate).toHaveBeenCalledTimes(1);
+    expect(onCreate).toHaveBeenCalledWith("Design sync");
+  });
+
+  it("disables the create button until a title is entered", () => {
+    renderList();
+
+    expect(
+      screen.getByRole("button", { name: /new conversation/i }),
+    ).toBeDisabled();
   });
 });

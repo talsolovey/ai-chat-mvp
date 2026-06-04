@@ -10,6 +10,7 @@ import { chat as chatApi } from "../../../lib/apiClient";
 export type UseMessagesResult = {
   thread: MessageThreadState;
   sendMessage: (content: string) => Promise<boolean>;
+  loadOlder: () => void;
   dismissSendError: () => void;
 };
 
@@ -27,9 +28,18 @@ export function useMessages(
     activeConversationIdRef.current = conversationId;
   }, [conversationId]);
 
+  const nextCursorRef = useRef(thread.nextCursor);
+  const isLoadingOlderRef = useRef(thread.isLoadingOlder);
+  useEffect(() => {
+    nextCursorRef.current = thread.nextCursor;
+  }, [thread.nextCursor]);
+  useEffect(() => {
+    isLoadingOlderRef.current = thread.isLoadingOlder;
+  }, [thread.isLoadingOlder]);
+
   useEffect(() => {
     if (!conversationId) {
-      dispatch({ type: "load/success", payload: [] });
+      dispatch({ type: "load/success", payload: { messages: [], nextCursor: null } });
       return;
     }
 
@@ -37,9 +47,12 @@ export function useMessages(
     const abortController = new AbortController();
 
     chatApi
-      .getMessages(conversationId, undefined, abortController.signal)
+      .getMessages(currentUserId, conversationId, undefined, abortController.signal)
       .then((data) => {
-        dispatch({ type: "load/success", payload: data.messages });
+        dispatch({
+          type: "load/success",
+          payload: { messages: data.messages, nextCursor: data.nextCursor },
+        });
       })
       .catch((err: unknown) => {
         if (err instanceof DOMException && err.name === "AbortError") {
@@ -54,7 +67,7 @@ export function useMessages(
     return (): void => {
       abortController.abort();
     };
-  }, [conversationId]);
+  }, [conversationId, currentUserId]);
 
   const sendMessage = useCallback(
     async (content: string): Promise<boolean> => {
@@ -66,7 +79,6 @@ export function useMessages(
 
       const request: SendMessageRequest = {
         content: trimmed,
-        senderId: currentUserId,
       };
 
       const tempMessage: Message = {
@@ -81,6 +93,7 @@ export function useMessages(
 
       try {
         const serverMessage = await chatApi.sendMessage(
+          currentUserId,
           conversationId,
           request,
         );
@@ -108,9 +121,38 @@ export function useMessages(
     [conversationId, currentUserId],
   );
 
+  const loadOlder = useCallback((): void => {
+    const convId = conversationId;
+    const cursor = nextCursorRef.current;
+    if (!convId || !cursor || isLoadingOlderRef.current) {
+      return;
+    }
+
+    dispatch({ type: "older/start" });
+    isLoadingOlderRef.current = true;
+
+    chatApi
+      .getMessages(currentUserId, convId, cursor)
+      .then((data) => {
+        if (activeConversationIdRef.current !== convId) {
+          return;
+        }
+        dispatch({
+          type: "older/success",
+          payload: { messages: data.messages, nextCursor: data.nextCursor },
+        });
+      })
+      .catch(() => {
+        if (activeConversationIdRef.current !== convId) {
+          return;
+        }
+        dispatch({ type: "older/error" });
+      });
+  }, [conversationId, currentUserId]);
+
   const dismissSendError = useCallback((): void => {
     dispatch({ type: "sendError/clear" });
   }, []);
 
-  return { thread, sendMessage, dismissSendError };
+  return { thread, sendMessage, loadOlder, dismissSendError };
 }
