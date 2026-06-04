@@ -1,0 +1,63 @@
+.root {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  padding: 4px 0 2px;
+}
+
+.textarea {
+  flex: 1;
+  padding: 10px 14px;
+  resize: vertical;
+  min-height: 44px;
+  font: inherit;
+  line-height: 1.4;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.textarea::placeholder {
+  color: var(--text-soft);
+}
+
+.textarea:focus {
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.sendButton {
+  padding: 10px 22px;
+  background: var(--accent-strong);
+  color: white;
+  border: 1px solid var(--accent-strong);
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.sendButton:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.sendButton:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.sendButton:disabled {
+  background: var(--surface-soft);
+  border-color: var(--surface-soft);
+  color: var(--text-soft);
+  opacity: 1;
+}
