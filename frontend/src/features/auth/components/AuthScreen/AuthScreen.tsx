@@ -1,21 +1,51 @@
 import { useState, type FormEvent, type ReactElement } from "react";
 import type { User } from "../../types";
-import { useLogin } from "../../hooks/useLogin";
+import { useAuth } from "../../hooks/useAuth";
 import styles from "./AuthScreen.module.css";
 
 type AuthScreenProps = {
   onUserSelected: (user: User) => void;
 };
 
+type AuthMode = "login" | "signup";
+
 export default function AuthScreen({
   onUserSelected,
 }: AuthScreenProps): ReactElement {
-  const [userId, setUserId] = useState("");
-  const { login, isSubmitting, error } = useLogin();
+  const [mode, setMode] = useState<AuthMode>("login");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [notice, setNotice] = useState<string | null>(null);
+  const { login, signup, isSubmitting, error } = useAuth();
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
+  const isSignup = mode === "signup";
+  const canSubmit =
+    email.trim() !== "" && password !== "" && (!isSignup || name.trim() !== "");
+
+  function switchMode(): void {
+    setNotice(null);
+    setMode(isSignup ? "login" : "signup");
+  }
+
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>,
+  ): Promise<void> {
     event.preventDefault();
-    const user = await login(userId);
+    setNotice(null);
+
+    if (isSignup) {
+      const user = await signup(name.trim(), email.trim(), password);
+      if (user) {
+        setMode("login");
+        setPassword("");
+        setName("");
+        setNotice("Account created — please log in.");
+      }
+      return;
+    }
+
+    const user = await login(email.trim(), password);
     if (user) {
       onUserSelected(user);
     }
@@ -23,34 +53,93 @@ export default function AuthScreen({
 
   return (
     <div className={styles.root}>
-      <h1 className={styles.title}>Log in</h1>
-      <form className={styles.form} onSubmit={handleSubmit}>
-        <label className={styles.label} htmlFor="userId">
-          User ID
-        </label>
-        <input
-          id="userId"
-          className={styles.input}
-          type="text"
-          value={userId}
-          onChange={(e): void => setUserId(e.target.value)}
-          placeholder="e.g. me, support, teammate"
-          autoComplete="username"
-          disabled={isSubmitting}
-        />
-        {error && (
-          <p role="alert" className={styles.error}>
-            {error.message}
+      <div className={styles.card}>
+        <div className={styles.logo} aria-hidden="true">
+          💬
+        </div>
+        <h1 className={styles.title}>{isSignup ? "Sign up" : "Log in"}</h1>
+        <p className={styles.subtitle}>
+          {isSignup
+            ? "Create an account to start chatting"
+            : "Welcome back — log in to continue"}
+        </p>
+        {notice && (
+          <p role="status" className={styles.notice}>
+            {notice}
           </p>
         )}
-        <button
-          type="submit"
-          className={styles.submitButton}
-          disabled={isSubmitting || !userId.trim()}
-        >
-          {isSubmitting ? "Logging in..." : "Log in"}
-        </button>
-      </form>
+        <form className={styles.form} onSubmit={handleSubmit}>
+          {isSignup && (
+            <>
+              <label className={styles.label} htmlFor="name">
+                Name
+              </label>
+              <input
+                id="name"
+                className={styles.input}
+                type="text"
+                value={name}
+                onChange={(e): void => setName(e.target.value)}
+                autoComplete="name"
+                disabled={isSubmitting}
+              />
+            </>
+          )}
+          <label className={styles.label} htmlFor="email">
+            Email
+          </label>
+          <input
+            id="email"
+            className={styles.input}
+            type="email"
+            value={email}
+            onChange={(e): void => setEmail(e.target.value)}
+            autoComplete="email"
+            disabled={isSubmitting}
+          />
+          <label className={styles.label} htmlFor="password">
+            Password
+          </label>
+          <input
+            id="password"
+            className={styles.input}
+            type="password"
+            value={password}
+            onChange={(e): void => setPassword(e.target.value)}
+            autoComplete={isSignup ? "new-password" : "current-password"}
+            disabled={isSubmitting}
+          />
+          {isSignup && <p className={styles.hint}>At least 8 characters</p>}
+          {error && (
+            <p role="alert" className={styles.error}>
+              {error.message}
+            </p>
+          )}
+          <button
+            type="submit"
+            className={styles.submitButton}
+            disabled={isSubmitting || !canSubmit}
+          >
+            {isSubmitting
+              ? isSignup
+                ? "Signing up..."
+                : "Logging in..."
+              : isSignup
+                ? "Sign up"
+                : "Log in"}
+          </button>
+          <button
+            type="button"
+            className={styles.switchButton}
+            onClick={switchMode}
+            disabled={isSubmitting}
+          >
+            {isSignup
+              ? "Already have an account? Log in"
+              : "No account? Sign up"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
