@@ -1,3 +1,5 @@
+import { getToken } from "./tokenStorage";
+
 async function extractErrorMessage(
   response: Response,
   url: string,
@@ -5,9 +7,24 @@ async function extractErrorMessage(
   const fallback = `HTTP ${response.status} on ${url}`;
   try {
     const body = (await response.json()) as unknown;
+    if (typeof body !== "object" || body === null) {
+      return fallback;
+    }
+
+    if ("message" in body) {
+      const { message } = body as { message: unknown };
+      if (typeof message === "string") {
+        return message;
+      }
+      if (
+        Array.isArray(message) &&
+        message.every((m): m is string => typeof m === "string")
+      ) {
+        return message.join(", ");
+      }
+    }
+
     if (
-      typeof body === "object" &&
-      body !== null &&
       "error" in body &&
       typeof body.error === "object" &&
       body.error !== null &&
@@ -26,6 +43,11 @@ function fetchJson<T>(url: string, options: RequestInit): Promise<T> {
   const headers = new Headers(options.headers ?? {});
   if (options.body !== undefined && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
+  }
+
+  const token = getToken();
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   return fetch(url, { ...options, headers }).then(async (response) => {
