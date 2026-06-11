@@ -26,6 +26,8 @@ export const getMessagesQuerySchema = z.object({
 });
 
 export type LoginBody = z.infer<typeof loginBodySchema>;
-export type CreateConversationBody = z.infer<typeof createConversationBodySchema>;
+export type CreateConversationBody = z.infer<
+  typeof createConversationBodySchema
+>;
 export type CreateMessageBody = z.infer<typeof createMessageBodySchema>;
 export type GetMessagesQuery = z.infer<typeof getMessagesQuerySchema>;

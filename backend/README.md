@@ -20,14 +20,14 @@ The server starts on **http://localhost:4000**. CORS is configured to allow the 
 
 ## Scripts
 
-| Script | Description |
-| --- | --- |
-| `npm run dev` | Start in watch mode (`ts-node-dev`). |
+| Script              | Description                                   |
+| ------------------- | --------------------------------------------- |
+| `npm run dev`       | Start in watch mode (`ts-node-dev`).          |
 | `npm run typecheck` | Type-check without emitting (`tsc --noEmit`). |
-| `npm run build` | Clean and compile to `dist/`. |
-| `npm run start` | Run the compiled server (`dist/index.js`). |
-| `npm run serve` | Build then start. |
-| `npm run clean` | Remove `dist/`. |
+| `npm run build`     | Clean and compile to `dist/`.                 |
+| `npm run start`     | Run the compiled server (`dist/index.js`).    |
+| `npm run serve`     | Build then start.                             |
+| `npm run clean`     | Remove `dist/`.                               |
 
 ## Architecture
 
@@ -58,14 +58,14 @@ src/
 
 All routes are mounted under `/api`.
 
-| Method | Path | Auth | Description |
-| --- | --- | --- | --- |
-| `POST` | `/api/auth/login` | — | Accepts `{ userId }`, returns `{ token, user }`. |
-| `GET` | `/api/conversations` | `x-user-id` | List the caller's conversations (newest first). |
-| `POST` | `/api/conversations` | `x-user-id` | Create a conversation from `{ title }`. |
-| `GET` | `/api/conversations/:id/messages` | `x-user-id` | Paginated history. Query: `cursor`, `limit` (1–100, default 20). |
-| `POST` | `/api/conversations/:id/messages` | `x-user-id` | Create a message from `{ content }`. |
-| `GET` | `/health` | — | Health check. |
+| Method | Path                              | Auth        | Description                                                      |
+| ------ | --------------------------------- | ----------- | ---------------------------------------------------------------- |
+| `POST` | `/api/auth/login`                 | —           | Accepts `{ userId }`, returns `{ token, user }`.                 |
+| `GET`  | `/api/conversations`              | `x-user-id` | List the caller's conversations (newest first).                  |
+| `POST` | `/api/conversations`              | `x-user-id` | Create a conversation from `{ title }`.                          |
+| `GET`  | `/api/conversations/:id/messages` | `x-user-id` | Paginated history. Query: `cursor`, `limit` (1–100, default 20). |
+| `POST` | `/api/conversations/:id/messages` | `x-user-id` | Create a message from `{ content }`.                             |
+| `GET`  | `/health`                         | —           | Health check.                                                    |
 
 See [`../API_CONTRACT.md`](../API_CONTRACT.md) for full request/response shapes.
 
@@ -74,16 +74,22 @@ See [`../API_CONTRACT.md`](../API_CONTRACT.md) for full request/response shapes.
 All errors share a consistent shape:
 
 ```json
-{ "error": { "code": "BAD_REQUEST", "message": "Invalid request body", "details": { "issues": [] } } }
+{
+  "error": {
+    "code": "BAD_REQUEST",
+    "message": "Invalid request body",
+    "details": { "issues": [] }
+  }
+}
 ```
 
-| Status | Code | When |
-| --- | --- | --- |
-| `400` | `BAD_REQUEST` | Validation failure / malformed JSON. |
-| `401` | `UNAUTHORIZED` | Missing `x-user-id` or unknown login user. |
-| `403` | `FORBIDDEN` | Conversation exists but is not owned by the caller. |
-| `404` | `NOT_FOUND` | Unknown route or missing conversation. |
-| `500` | `INTERNAL` | Unexpected error. |
+| Status | Code           | When                                                |
+| ------ | -------------- | --------------------------------------------------- |
+| `400`  | `BAD_REQUEST`  | Validation failure / malformed JSON.                |
+| `401`  | `UNAUTHORIZED` | Missing `x-user-id` or unknown login user.          |
+| `403`  | `FORBIDDEN`    | Conversation exists but is not owned by the caller. |
+| `404`  | `NOT_FOUND`    | Unknown route or missing conversation.              |
+| `500`  | `INTERNAL`     | Unexpected error.                                   |
 
 ## Notes
 

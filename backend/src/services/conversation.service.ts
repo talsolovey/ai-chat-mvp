@@ -14,11 +14,11 @@ export function getConversationsForUser(
 
   const userConversations = allConversations.filter((c) => c.userId === userId);
 
-  userConversations.sort((a, b) =>
+  const sortedUserConversations = userConversations.sort((a, b) =>
     b.lastMessageAt.localeCompare(a.lastMessageAt),
   );
 
-  return userConversations;
+  return sortedUserConversations;
 }
 
 export function createConversationForUser(
