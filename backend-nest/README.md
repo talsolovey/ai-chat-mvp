@@ -29,31 +29,3 @@ needed in development.
 | `npm run build`     | Compile to `dist/`     |
 | `npm test`          | Unit tests             |
 | `npm run lint`      | ESLint                 |
-
-## API
-
-All routes are prefixed with `/api`. Protected routes require
-`Authorization: Bearer <token>`.
-
-| Method | Path                          | Auth | Description                                                               |
-| ------ | ----------------------------- | ---- | ------------------------------------------------------------------------- |
-| GET    | `/health`                     | —    | Liveness check                                                            |
-| POST   | `/auth/signup`                | —    | `{ email, password, name }` → `{ token, user }`; `409` on duplicate email |
-| POST   | `/auth/login`                 | —    | `{ email, password }` → `{ token, user }`; `401` on bad credentials       |
-| GET    | `/me`                         | JWT  | Current authenticated user                                                |
-| GET    | `/conversations`              | JWT  | Caller's conversations, newest first                                      |
-| POST   | `/conversations`              | JWT  | `{ title }` → `201` conversation                                          |
-| GET    | `/conversations/:id/messages` | JWT  | Paginated (`?cursor=&limit=`); `403` if not a participant                 |
-| POST   | `/conversations/:id/messages` | JWT  | `{ content }` → `201` message; `403` if not a participant                 |
-
-Validation errors return `400`. Missing or invalid tokens return `401`.
-Accessing another user's conversation returns `403` (never the data); unknown
-conversation ids return `404`.
-
-## Modules
-
-- `AuthModule` — signup, login, JWT issuance, Passport strategy, guard, `/me`
-- `UsersModule` — user storage and password-free public projection
-- `ConversationsModule` — conversation storage and the ownership rule
-- `MessagesModule` — message storage and cursor pagination
-- `CommonModule` — shared id generation
