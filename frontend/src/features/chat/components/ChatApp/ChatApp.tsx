@@ -18,11 +18,14 @@ export default function ChatApp({ currentUser }: ChatAppProps): ReactElement {
     conversationsError,
     createConversation,
     updateConversationPreview,
-  } = useConversations(currentUser);
+  } = useConversations();
 
   const [selectedConversationId, setSelectedConversationId] = useState<
     string | null
   >(null);
+
+  const selectedConversation =
+    conversations.find((c) => c.id === selectedConversationId) ?? null;
 
   function handleCreateConversation(title: string): void {
     void createConversation(title).then((conversation) => {
@@ -52,7 +55,11 @@ export default function ChatApp({ currentUser }: ChatAppProps): ReactElement {
         return;
       }
       if (conversationId) {
-        updateConversationPreview(conversationId, text, new Date().toISOString());
+        updateConversationPreview(
+          conversationId,
+          text,
+          new Date().toISOString(),
+        );
       }
     });
   }
@@ -71,6 +78,7 @@ export default function ChatApp({ currentUser }: ChatAppProps): ReactElement {
         <MessageThread
           thread={thread}
           selectedConversationId={selectedConversationId}
+          conversationTitle={selectedConversation?.title ?? null}
           currentUserId={currentUser.id}
           messageText={messageText}
           onMessageTextChange={setMessageText}

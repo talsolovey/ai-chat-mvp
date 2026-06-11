@@ -1,16 +1,17 @@
 import { act } from "react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { useConversations } from "./useConversations";
 import { server } from "../../../mocks/server";
-import type { User } from "../../auth/types";
 
-const me: User = { id: "me", name: "Me" };
+beforeEach(() => {
+  localStorage.setItem("auth.token", "mock-token-me");
+});
 
 describe("useConversations", () => {
   it("starts in a loading state and resolves with the current user's conversations sorted by lastMessageAt desc", async () => {
-    const { result } = renderHook(() => useConversations(me));
+    const { result } = renderHook(() => useConversations());
 
     expect(result.current.conversationsLoading).toBe(true);
     expect(result.current.conversations).toEqual([]);
@@ -27,8 +28,8 @@ describe("useConversations", () => {
   });
 
   it("filters out conversations the current user does not own", async () => {
-    const lurker: User = { id: "lurker", name: "Lurker" };
-    const { result } = renderHook(() => useConversations(lurker));
+    localStorage.setItem("auth.token", "mock-token-lurker");
+    const { result } = renderHook(() => useConversations());
 
     await waitFor(() => {
       expect(result.current.conversationsLoading).toBe(false);
@@ -48,7 +49,7 @@ describe("useConversations", () => {
       }),
     );
 
-    const { result } = renderHook(() => useConversations(me));
+    const { result } = renderHook(() => useConversations());
 
     await waitFor(() => {
       expect(result.current.conversationsLoading).toBe(false);
@@ -60,7 +61,7 @@ describe("useConversations", () => {
   });
 
   it("prepends a newly created conversation to the list", async () => {
-    const { result } = renderHook(() => useConversations(me));
+    const { result } = renderHook(() => useConversations());
 
     await waitFor(() => {
       expect(result.current.conversationsLoading).toBe(false);
@@ -78,7 +79,7 @@ describe("useConversations", () => {
   });
 
   it("updates a conversation's snippet/timestamp and re-sorts it to the top", async () => {
-    const { result } = renderHook(() => useConversations(me));
+    const { result } = renderHook(() => useConversations());
 
     await waitFor(() => {
       expect(result.current.conversationsLoading).toBe(false);

@@ -39,7 +39,10 @@ export function useMessages(
 
   useEffect(() => {
     if (!conversationId) {
-      dispatch({ type: "load/success", payload: { messages: [], nextCursor: null } });
+      dispatch({
+        type: "load/success",
+        payload: { messages: [], nextCursor: null },
+      });
       return;
     }
 
@@ -47,11 +50,14 @@ export function useMessages(
     const abortController = new AbortController();
 
     chatApi
-      .getMessages(currentUserId, conversationId, undefined, abortController.signal)
-      .then((data) => {
+      .getMessages(conversationId, undefined, abortController.signal)
+      .then((firstPage) => {
         dispatch({
           type: "load/success",
-          payload: { messages: data.messages, nextCursor: data.nextCursor },
+          payload: {
+            messages: firstPage.messages,
+            nextCursor: firstPage.nextCursor,
+          },
         });
       })
       .catch((err: unknown) => {
@@ -93,7 +99,6 @@ export function useMessages(
 
       try {
         const serverMessage = await chatApi.sendMessage(
-          currentUserId,
           conversationId,
           request,
         );
@@ -132,14 +137,17 @@ export function useMessages(
     isLoadingOlderRef.current = true;
 
     chatApi
-      .getMessages(currentUserId, convId, cursor)
-      .then((data) => {
+      .getMessages(convId, cursor)
+      .then((olderPage) => {
         if (activeConversationIdRef.current !== convId) {
           return;
         }
         dispatch({
           type: "older/success",
-          payload: { messages: data.messages, nextCursor: data.nextCursor },
+          payload: {
+            messages: olderPage.messages,
+            nextCursor: olderPage.nextCursor,
+          },
         });
       })
       .catch(() => {
@@ -148,7 +156,7 @@ export function useMessages(
         }
         dispatch({ type: "older/error" });
       });
-  }, [conversationId, currentUserId]);
+  }, [conversationId]);
 
   const dismissSendError = useCallback((): void => {
     dispatch({ type: "sendError/clear" });

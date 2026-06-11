@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
   render,
   screen,
@@ -10,7 +10,11 @@ import userEvent from "@testing-library/user-event";
 import ChatApp from "./ChatApp";
 import type { User } from "../../../auth/types";
 
-const me: User = { id: "me", name: "Me" };
+const me: User = { id: "me", email: "me@example.com", name: "Me" };
+
+beforeEach(() => {
+  localStorage.setItem("auth.token", "mock-token-me");
+});
 
 const KNOWN_C1_MESSAGE = "Good point, the object is a new ref each render.";
 
