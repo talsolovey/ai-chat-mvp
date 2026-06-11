@@ -23,6 +23,16 @@
 .newButton {
   padding: 8px 12px;
   font-size: 0.9rem;
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: #fff;
+  font-weight: 600;
+}
+
+.newButton:hover:not(:disabled) {
+  background: #7a68a6;
+  border-color: #7a68a6;
+  color: #fff;
 }
 
 .skeletonStack {
@@ -65,9 +75,25 @@
   color: var(--accent-strong);
 }
 
+.itemHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .itemTitle {
   font-weight: 600;
   font-size: 0.92rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemTime {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: var(--text-soft);
 }
 
 .itemSnippet {

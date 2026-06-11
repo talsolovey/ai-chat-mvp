@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type ReactElement } from "react";
 import type { Conversation } from "../../types";
 import Skeleton from "../../../../components/Skeleton";
+import { formatRelativeTime } from "../../../../lib/formatTime";
 import styles from "./ConversationList.module.css";
 
 type ConversationListProps = {
@@ -97,7 +98,15 @@ export default function ConversationList({
                   className={itemClassName}
                   aria-pressed={isSelected}
                 >
-                  <div className={styles.itemTitle}>{conversation.title}</div>
+                  <div className={styles.itemHeader}>
+                    <div className={styles.itemTitle}>{conversation.title}</div>
+                    <time
+                      className={styles.itemTime}
+                      dateTime={conversation.lastMessageAt}
+                    >
+                      {formatRelativeTime(conversation.lastMessageAt)}
+                    </time>
+                  </div>
                   <div className={styles.itemSnippet}>
                     {conversation.lastMessageSnippet}
                   </div>

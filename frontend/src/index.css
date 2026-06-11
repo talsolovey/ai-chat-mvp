@@ -116,7 +116,9 @@ button:disabled {
   opacity: 0.55;
 }
 
-input[type="text"] {
+input[type="text"],
+input[type="email"],
+input[type="password"] {
   font: inherit;
   font-size: 0.95rem;
   color: var(--text);
@@ -129,11 +131,15 @@ input[type="text"] {
     box-shadow 160ms ease;
 }
 
-input[type="text"]::placeholder {
+input[type="text"]::placeholder,
+input[type="email"]::placeholder,
+input[type="password"]::placeholder {
   color: var(--text-soft);
 }
 
-input[type="text"]:focus {
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus {
   border-color: var(--accent-strong);
   box-shadow: 0 0 0 3px var(--accent-ring);
 }

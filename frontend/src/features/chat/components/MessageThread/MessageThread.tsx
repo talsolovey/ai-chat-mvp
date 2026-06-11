@@ -9,6 +9,7 @@ import {
 import MessageComposer from "../MessageComposer";
 import Skeleton from "../../../../components/Skeleton";
 import type { MessageThreadState } from "../../hooks/messageThreadReducer";
+import { formatClockTime } from "../../../../lib/formatTime";
 import styles from "./MessageThread.module.css";
 
 const LOAD_OLDER_THRESHOLD_PX = 48;
@@ -16,6 +17,7 @@ const LOAD_OLDER_THRESHOLD_PX = 48;
 type MessageThreadProps = {
   thread: MessageThreadState;
   selectedConversationId: string | null;
+  conversationTitle?: string | null;
   currentUserId: string;
   messageText: string;
   onMessageTextChange: (value: string) => void;
@@ -26,6 +28,7 @@ type MessageThreadProps = {
 export default function MessageThread({
   thread,
   selectedConversationId,
+  conversationTitle = null,
   currentUserId,
   messageText,
   onMessageTextChange,
@@ -62,7 +65,11 @@ export default function MessageThread({
 
   function handleScroll(event: UIEvent<HTMLDivElement>): void {
     const el = event.currentTarget;
-    if (el.scrollTop <= LOAD_OLDER_THRESHOLD_PX && hasMore && !thread.isLoadingOlder) {
+    if (
+      el.scrollTop <= LOAD_OLDER_THRESHOLD_PX &&
+      hasMore &&
+      !thread.isLoadingOlder
+    ) {
       distanceFromBottomRef.current = el.scrollHeight - el.scrollTop;
       onLoadOlder();
     }
@@ -70,7 +77,7 @@ export default function MessageThread({
 
   return (
     <div className={styles.root}>
-      <h2>Messages</h2>
+      <h2>{conversationTitle ?? "Messages"}</h2>
 
       <div
         ref={scrollRef}
@@ -126,7 +133,15 @@ export default function MessageThread({
                 }`;
                 return (
                   <li key={message.id} className={className}>
-                    {message.content}
+                    <span className={styles.messageContent}>
+                      {message.content}
+                    </span>
+                    <time
+                      className={styles.messageTime}
+                      dateTime={message.sentAt}
+                    >
+                      {formatClockTime(message.sentAt)}
+                    </time>
                   </li>
                 );
               })}

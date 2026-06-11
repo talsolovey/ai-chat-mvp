@@ -40,12 +40,24 @@
 
 .message {
   max-width: 72%;
-  padding: 10px 14px;
+  padding: 8px 14px 6px;
   border-radius: 18px;
   font-size: 0.92rem;
   line-height: 1.45;
   word-wrap: break-word;
   box-shadow: var(--shadow-bubble);
+}
+
+.messageContent {
+  display: block;
+}
+
+.messageTime {
+  display: block;
+  text-align: right;
+  font-size: 0.66rem;
+  margin-top: 2px;
+  opacity: 0.65;
 }
 
 .outgoing {
