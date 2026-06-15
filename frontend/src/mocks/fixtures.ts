@@ -2,9 +2,10 @@ import type { User } from "../features/auth/types";
 import type { Conversation, Message } from "../features/chat/types";
 
 export const users: User[] = [
-  { id: "me", name: "Me" },
-  { id: "support", name: "Support" },
-  { id: "teammate", name: "Teammate" },
+  { id: "me", email: "me@example.com", name: "Me" },
+  { id: "support", email: "support@example.com", name: "Support" },
+  { id: "teammate", email: "teammate@example.com", name: "Teammate" },
+  { id: "lurker", email: "lurker@example.com", name: "Lurker" },
 ];
 
 const seedConversations: ReadonlyArray<Conversation> = [
