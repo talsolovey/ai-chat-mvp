@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useReducer } from "react";
 import type { Conversation } from "../types";
-import type { User } from "../../auth/types";
-import { chat as chatApi } from "../../../lib/apiClient";
+import { conversations as conversationsApi } from "../../../lib/apiClient";
 
 export type UseConversationsResult = {
   conversations: Conversation[];
@@ -28,7 +27,11 @@ type Action =
   | { type: "create/success"; payload: Conversation }
   | {
       type: "preview/update";
-      payload: { conversationId: string; snippet: string; lastMessageAt: string };
+      payload: {
+        conversationId: string;
+        snippet: string;
+        lastMessageAt: string;
+      };
     };
 
 const initialState: ConversationsState = {
@@ -88,16 +91,19 @@ function reducer(
   }
 }
 
-export function useConversations(currentUser: User): UseConversationsResult {
+export function useConversations(): UseConversationsResult {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   useEffect(() => {
     dispatch({ type: "load/start" });
 
-    chatApi
-      .getConversations(currentUser.id)
-      .then((data) => {
-        dispatch({ type: "load/success", payload: sortByLastMessageDesc(data) });
+    conversationsApi
+      .getConversations()
+      .then((conversations) => {
+        dispatch({
+          type: "load/success",
+          payload: sortByLastMessageDesc(conversations),
+        });
       })
       .catch((err: unknown) => {
         dispatch({
@@ -105,7 +111,7 @@ export function useConversations(currentUser: User): UseConversationsResult {
           payload: err instanceof Error ? err : new Error(String(err)),
         });
       });
-  }, [currentUser.id]);
+  }, []);
 
   const createConversation = useCallback(
     async (title: string): Promise<Conversation | null> => {
@@ -114,13 +120,13 @@ export function useConversations(currentUser: User): UseConversationsResult {
         return null;
       }
 
-      const conversation = await chatApi.createConversation(currentUser.id, {
+      const conversation = await conversationsApi.createConversation({
         title: trimmed,
       });
       dispatch({ type: "create/success", payload: conversation });
       return conversation;
     },
-    [currentUser.id],
+    [],
   );
 
   const updateConversationPreview = useCallback(

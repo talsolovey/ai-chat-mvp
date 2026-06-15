@@ -5,7 +5,7 @@ import {
   initialMessageThreadState,
   type MessageThreadState,
 } from "./messageThreadReducer";
-import { chat as chatApi } from "../../../lib/apiClient";
+import { messages as messagesApi } from "../../../lib/apiClient";
 
 export type UseMessagesResult = {
   thread: MessageThreadState;
@@ -39,19 +39,25 @@ export function useMessages(
 
   useEffect(() => {
     if (!conversationId) {
-      dispatch({ type: "load/success", payload: { messages: [], nextCursor: null } });
+      dispatch({
+        type: "load/success",
+        payload: { messages: [], nextCursor: null },
+      });
       return;
     }
 
     dispatch({ type: "load/start" });
     const abortController = new AbortController();
 
-    chatApi
-      .getMessages(currentUserId, conversationId, undefined, abortController.signal)
-      .then((data) => {
+    messagesApi
+      .getMessages(conversationId, undefined, abortController.signal)
+      .then((firstPage) => {
         dispatch({
           type: "load/success",
-          payload: { messages: data.messages, nextCursor: data.nextCursor },
+          payload: {
+            messages: firstPage.messages,
+            nextCursor: firstPage.nextCursor,
+          },
         });
       })
       .catch((err: unknown) => {
@@ -92,8 +98,7 @@ export function useMessages(
       dispatch({ type: "send/optimistic", payload: tempMessage });
 
       try {
-        const serverMessage = await chatApi.sendMessage(
-          currentUserId,
+        const serverMessage = await messagesApi.sendMessage(
           conversationId,
           request,
         );
@@ -131,15 +136,18 @@ export function useMessages(
     dispatch({ type: "older/start" });
     isLoadingOlderRef.current = true;
 
-    chatApi
-      .getMessages(currentUserId, convId, cursor)
-      .then((data) => {
+    messagesApi
+      .getMessages(convId, cursor)
+      .then((olderPage) => {
         if (activeConversationIdRef.current !== convId) {
           return;
         }
         dispatch({
           type: "older/success",
-          payload: { messages: data.messages, nextCursor: data.nextCursor },
+          payload: {
+            messages: olderPage.messages,
+            nextCursor: olderPage.nextCursor,
+          },
         });
       })
       .catch(() => {
@@ -148,7 +156,7 @@ export function useMessages(
         }
         dispatch({ type: "older/error" });
       });
-  }, [conversationId, currentUserId]);
+  }, [conversationId]);
 
   const dismissSendError = useCallback((): void => {
     dispatch({ type: "sendError/clear" });
