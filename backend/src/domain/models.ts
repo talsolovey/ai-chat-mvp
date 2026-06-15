@@ -1,6 +1,6 @@
 export type UserId = string;
 
-export type senderId = UserId | "system";
+export type SenderId = UserId | "system";
 
 export type User = {
   id: UserId;
@@ -18,7 +18,7 @@ export type Conversation = {
 export type Message = {
   id: string;
   conversationId: string;
-  senderId: senderId;
+  senderId: SenderId;
   sentAt: string;
   content: string;
 };
