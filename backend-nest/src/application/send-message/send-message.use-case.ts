@@ -1,0 +1,35 @@
+import { Injectable } from '@nestjs/common';
+import { ConversationsService } from '../../modules/conversations/conversations.service';
+import { MessagesService } from '../../modules/messages/messages.service';
+import { Message } from '../../modules/messages/messages.entity';
+import { UserId } from '../../modules/users/user.entity';
+
+@Injectable()
+export class SendMessageUseCase {
+  constructor(
+    private readonly conversations: ConversationsService,
+    private readonly messages: MessagesService,
+  ) {}
+
+  async execute(
+    conversationId: string,
+    userId: UserId,
+    content: string,
+  ): Promise<Message> {
+    await this.conversations.assertOwnedBy(conversationId, userId);
+
+    const message = await this.messages.create(
+      conversationId,
+      userId,
+      content,
+    );
+
+    await this.conversations.updateLastMessage(
+      conversationId,
+      content,
+      message.sentAt,
+    );
+
+    return message;
+  }
+}
