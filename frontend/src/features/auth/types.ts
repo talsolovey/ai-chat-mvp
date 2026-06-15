@@ -1,13 +1,21 @@
 export type User = {
   id: string;
+  email: string;
+  name: string;
+};
+
+export type SignupRequest = {
+  email: string;
+  password: string;
   name: string;
 };
 
 export type LoginRequest = {
-  userId: string;
+  email: string;
+  password: string;
 };
 
-export type LoginResponse = {
+export type AuthResponse = {
   token: string;
   user: User;
 };
