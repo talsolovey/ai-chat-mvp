@@ -1,0 +1,91 @@
+.root {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px;
+  gap: 12px;
+  min-height: 0;
+}
+
+.scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 4px 4px 8px 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.skeletonStack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.loadingOlder {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  padding: 4px 0 8px;
+}
+
+.messageList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.message {
+  max-width: 72%;
+  padding: 8px 14px 6px;
+  border-radius: 18px;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  word-wrap: break-word;
+  box-shadow: var(--shadow-bubble);
+}
+
+.messageContent {
+  display: block;
+}
+
+.messageTime {
+  display: block;
+  text-align: right;
+  font-size: 0.66rem;
+  margin-top: 2px;
+  opacity: 0.65;
+}
+
+.outgoing {
+  align-self: flex-end;
+  background: var(--bubble-outgoing-bg);
+  color: var(--bubble-outgoing-fg);
+  border: none;
+  border-bottom-right-radius: 6px;
+}
+
+.incoming {
+  align-self: flex-start;
+  background: var(--bubble-incoming-bg);
+  color: var(--bubble-incoming-fg);
+  border: 1px solid var(--bubble-incoming-border);
+  border-bottom-left-radius: 6px;
+}
+
+.statePrompt {
+  margin: auto;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  max-width: 320px;
+}
+
+.stateAlert {
+  margin: 12px 4px;
+  color: #c5443d;
+  font-size: 0.9rem;
+}

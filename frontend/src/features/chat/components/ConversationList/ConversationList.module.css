@@ -1,0 +1,106 @@
+.root {
+  width: 30%;
+  min-width: 240px;
+  max-width: 340px;
+  border-right: 1px solid var(--border);
+  padding: 16px 12px;
+  overflow-y: auto;
+  background: var(--surface);
+}
+
+.newForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.newInput {
+  padding: 8px 10px;
+  font-size: 0.9rem;
+}
+
+.newButton {
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: #fff;
+  font-weight: 600;
+}
+
+.newButton:hover:not(:disabled) {
+  background: #7a68a6;
+  border-color: #7a68a6;
+  color: #fff;
+}
+
+.skeletonStack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.itemList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.item:hover:not(:disabled):not(.selected) {
+  background: rgba(20, 30, 60, 0.04);
+  border-color: transparent;
+}
+
+.item.selected {
+  background: var(--surface-soft);
+  border-color: transparent;
+  box-shadow: inset 3px 0 0 var(--accent-strong);
+}
+
+.item.selected .itemTitle {
+  color: var(--accent-strong);
+}
+
+.itemHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.itemTitle {
+  font-weight: 600;
+  font-size: 0.92rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemTime {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: var(--text-soft);
+}
+
+.itemSnippet {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
