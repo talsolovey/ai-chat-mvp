@@ -5,36 +5,27 @@ import {
 } from '@nestjs/common';
 import { Conversation } from './conversations.entity';
 import { UserId } from '../users/user.entity';
-import { IdGeneratorService } from '../../common/id-generator.service';
 import { ConversationsRepository } from './conversations.repository';
+import { TransactionContext } from '../../common/persistence/transaction-runner';
 
 @Injectable()
 export class ConversationsService {
-  constructor(
-    private readonly repo: ConversationsRepository,
-    private readonly idGenerator: IdGeneratorService,
-  ) {}
+  constructor(private readonly repo: ConversationsRepository) {}
 
   async getConversationsForUser(userId: UserId): Promise<Conversation[]> {
-    const conversations = await this.repo.findByUser(userId);
-    return conversations.sort((a, b) =>
-      b.lastMessageAt.localeCompare(a.lastMessageAt),
-    );
+    return this.repo.findByUser(userId);
   }
 
   async createConversationForUser(
     userId: UserId,
     title: string,
   ): Promise<Conversation> {
-    const conversation: Conversation = {
-      id: `c-${this.idGenerator.generateId()}`,
+    return this.repo.create({
       title,
       lastMessageSnippet: '',
       lastMessageAt: new Date().toISOString(),
       userId,
-    };
-    await this.repo.save(conversation);
-    return conversation;
+    });
   }
 
   async getConversationOwnedBy(
@@ -46,7 +37,7 @@ export class ConversationsService {
       throw new NotFoundException('Conversation not found');
     }
     if (conversation.userId !== userId) {
-      throw new ForbiddenException('Not a participant in this conversation');
+      throw new ForbiddenException('Not the owner of this conversation');
     }
     return conversation;
   }
@@ -59,13 +50,8 @@ export class ConversationsService {
     conversationId: string,
     snippet: string,
     sentAt: string,
+    tx?: TransactionContext,
   ): Promise<void> {
-    const conversation = await this.repo.findById(conversationId);
-    if (!conversation) {
-      return;
-    }
-    conversation.lastMessageSnippet = snippet;
-    conversation.lastMessageAt = sentAt;
-    await this.repo.save(conversation);
+    await this.repo.updateLastMessage(conversationId, snippet, sentAt, tx);
   }
 }
