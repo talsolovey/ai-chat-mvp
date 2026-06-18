@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ConversationsService } from '../../modules/conversations/conversations.service';
-import { MessagesService, MessagesPage } from '../../modules/messages/messages.service';
+import {
+  MessagesService,
+  MessagesPage,
+} from '../../modules/messages/messages.service';
 import { UserId } from '../../modules/users/user.entity';
 
 @Injectable()
