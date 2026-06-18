@@ -4,9 +4,12 @@ import { ListMessagesUseCase } from './list-messages.use-case';
 import { SendMessageUseCase } from '../send-message/send-message.use-case';
 import { ConversationsService } from '../../modules/conversations/conversations.service';
 import { ConversationsRepository } from '../../modules/conversations/conversations.repository';
+import { FakeConversationsRepository } from '../../modules/conversations/testing/fake-conversations.repository';
 import { MessagesService } from '../../modules/messages/messages.service';
 import { MessagesRepository } from '../../modules/messages/messages.repository';
-import { IdGeneratorService } from '../../common/id-generator.service';
+import { FakeMessagesRepository } from '../../modules/messages/testing/fake-messages.repository';
+import { TransactionRunner } from '../../common/persistence/transaction-runner';
+import { FakeTransactionRunner } from '../../common/persistence/fake-transaction.runner';
 
 describe('ListMessagesUseCase', () => {
   let listMessages: ListMessagesUseCase;
@@ -19,10 +22,13 @@ describe('ListMessagesUseCase', () => {
         ListMessagesUseCase,
         SendMessageUseCase,
         ConversationsService,
-        ConversationsRepository,
+        {
+          provide: ConversationsRepository,
+          useClass: FakeConversationsRepository,
+        },
         MessagesService,
-        MessagesRepository,
-        IdGeneratorService,
+        { provide: MessagesRepository, useClass: FakeMessagesRepository },
+        { provide: TransactionRunner, useClass: FakeTransactionRunner },
       ],
     }).compile();
 
