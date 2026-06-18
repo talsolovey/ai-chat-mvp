@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ConversationsService } from './conversations.service';
 import { ConversationsRepository } from './conversations.repository';
-import { IdGeneratorService } from '../../common/id-generator.service';
+import { FakeConversationsRepository } from './testing/fake-conversations.repository';
 
 describe('ConversationsService', () => {
   let service: ConversationsService;
@@ -11,8 +11,10 @@ describe('ConversationsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ConversationsService,
-        ConversationsRepository,
-        IdGeneratorService,
+        {
+          provide: ConversationsRepository,
+          useClass: FakeConversationsRepository,
+        },
       ],
     }).compile();
 
