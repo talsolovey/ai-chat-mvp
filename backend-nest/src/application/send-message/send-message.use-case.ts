@@ -3,12 +3,14 @@ import { ConversationsService } from '../../modules/conversations/conversations.
 import { MessagesService } from '../../modules/messages/messages.service';
 import { Message } from '../../modules/messages/messages.entity';
 import { UserId } from '../../modules/users/user.entity';
+import { TransactionRunner } from '../../common/persistence/transaction-runner';
 
 @Injectable()
 export class SendMessageUseCase {
   constructor(
     private readonly conversations: ConversationsService,
     private readonly messages: MessagesService,
+    private readonly transactions: TransactionRunner,
   ) {}
 
   async execute(
@@ -18,18 +20,22 @@ export class SendMessageUseCase {
   ): Promise<Message> {
     await this.conversations.assertOwnedBy(conversationId, userId);
 
-    const message = await this.messages.create(
-      conversationId,
-      userId,
-      content,
-    );
+    return this.transactions.run(async (tx) => {
+      const message = await this.messages.create(
+        conversationId,
+        userId,
+        content,
+        tx,
+      );
 
-    await this.conversations.updateLastMessage(
-      conversationId,
-      content,
-      message.sentAt,
-    );
+      await this.conversations.updateLastMessage(
+        conversationId,
+        content,
+        message.sentAt,
+        tx,
+      );
 
-    return message;
+      return message;
+    });
   }
 }
