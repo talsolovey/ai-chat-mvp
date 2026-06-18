@@ -1,11 +1,15 @@
-process.env.JWT_SECRET =
-  process.env.JWT_SECRET ?? 'e2e-jwt-secret-for-tests';
+process.env.JWT_SECRET = process.env.JWT_SECRET ?? 'e2e-jwt-secret-for-tests';
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+
+type AuthBody = { token: string };
+type IdBody = { id: string };
+type ErrorBody = { error: { code: string; message: string } };
+type MessagesBody = { messages: { content: string }[] };
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -48,8 +52,8 @@ describe('AppController (e2e)', () => {
   });
 
   it('supports the full owner flow: signup, create, send, list', async () => {
-    const { body } = await signup('owner@example.com').expect(201);
-    const token = body.token as string;
+    const signupRes = await signup('owner@example.com').expect(201);
+    const { token } = signupRes.body as AuthBody;
     const auth = { Authorization: `Bearer ${token}` };
 
     const convo = await request(app.getHttpServer())
@@ -57,38 +61,43 @@ describe('AppController (e2e)', () => {
       .set(auth)
       .send({ title: 'My chat' })
       .expect(201);
+    const { id: convoId } = convo.body as IdBody;
 
     await request(app.getHttpServer())
-      .post(`/api/conversations/${convo.body.id}/messages`)
+      .post(`/api/conversations/${convoId}/messages`)
       .set(auth)
       .send({ content: 'hello there' })
       .expect(201);
 
     const list = await request(app.getHttpServer())
-      .get(`/api/conversations/${convo.body.id}/messages`)
+      .get(`/api/conversations/${convoId}/messages`)
       .set(auth)
       .expect(200);
+    const { messages } = list.body as MessagesBody;
 
-    expect(list.body.messages).toHaveLength(1);
-    expect(list.body.messages[0].content).toBe('hello there');
+    expect(messages).toHaveLength(1);
+    expect(messages[0].content).toBe('hello there');
   });
 
   it('forbids one user from reading another user conversation (403)', async () => {
     const a = await signup('a@example.com').expect(201);
     const b = await signup('b@example.com').expect(201);
+    const aToken = (a.body as AuthBody).token;
+    const bToken = (b.body as AuthBody).token;
 
     const convo = await request(app.getHttpServer())
       .post('/api/conversations')
-      .set({ Authorization: `Bearer ${a.body.token}` })
+      .set({ Authorization: `Bearer ${aToken}` })
       .send({ title: 'A private chat' })
       .expect(201);
+    const { id: convoId } = convo.body as IdBody;
 
     const res = await request(app.getHttpServer())
-      .get(`/api/conversations/${convo.body.id}/messages`)
-      .set({ Authorization: `Bearer ${b.body.token}` })
+      .get(`/api/conversations/${convoId}/messages`)
+      .set({ Authorization: `Bearer ${bToken}` })
       .expect(403);
 
-    expect(res.body.error.code).toBe('FORBIDDEN');
+    expect((res.body as ErrorBody).error.code).toBe('FORBIDDEN');
   });
 
   it('returns the normalized error contract on validation failure (400)', async () => {
@@ -97,8 +106,9 @@ describe('AppController (e2e)', () => {
       .send({ email: 'not-an-email' })
       .expect(400);
 
-    expect(res.body.error.code).toBe('BAD_REQUEST');
-    expect(typeof res.body.error.message).toBe('string');
+    const { error } = res.body as ErrorBody;
+    expect(error.code).toBe('BAD_REQUEST');
+    expect(typeof error.message).toBe('string');
   });
 
   it('treats email as case-insensitive: signup then login with different casing', async () => {
@@ -124,6 +134,6 @@ describe('AppController (e2e)', () => {
       .send({ name: 'Imposter', email: 'ALICE@X.com', password: 'password123' })
       .expect(409);
 
-    expect(res.body.error.code).toBe('CONFLICT');
+    expect((res.body as ErrorBody).error.code).toBe('CONFLICT');
   });
 });
