@@ -1,21 +1,24 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MessagesService } from './messages.service';
 import { MessagesRepository } from './messages.repository';
-import { IdGeneratorService } from '../../common/id-generator.service';
+import { FakeMessagesRepository } from './testing/fake-messages.repository';
 
 describe('MessagesService', () => {
   let service: MessagesService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [MessagesService, MessagesRepository, IdGeneratorService],
+      providers: [
+        MessagesService,
+        { provide: MessagesRepository, useClass: FakeMessagesRepository },
+      ],
     }).compile();
 
     service = module.get<MessagesService>(MessagesService);
   });
 
   it('persists a created message and returns it on listing', async () => {
-    const created = await service.create('c-1', 'user-1', 'hello');
+    const created = await service.createUserMessage('c-1', 'user-1', 'hello');
 
     const page = await service.listForConversation('c-1', undefined, undefined);
 
@@ -26,8 +29,8 @@ describe('MessagesService', () => {
   });
 
   it('isolates messages by conversation', async () => {
-    await service.create('c-1', 'user-1', 'in one');
-    await service.create('c-2', 'user-1', 'in two');
+    await service.createUserMessage('c-1', 'user-1', 'in one');
+    await service.createUserMessage('c-2', 'user-1', 'in two');
 
     const page = await service.listForConversation('c-1', undefined, undefined);
 
@@ -37,7 +40,7 @@ describe('MessagesService', () => {
 
   it('paginates with a cursor and reports nextCursor until the end', async () => {
     for (let i = 0; i < 3; i++) {
-      await service.create('c-1', 'user-1', `m${i}`);
+      await service.createUserMessage('c-1', 'user-1', `m${i}`);
     }
 
     const firstPage = await service.listForConversation('c-1', undefined, 2);
