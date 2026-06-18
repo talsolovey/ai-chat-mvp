@@ -1,28 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { User, PublicUser } from './user.entity';
-import { IdGeneratorService } from '../../common/id-generator.service';
 import { UsersRepository } from './users.repository';
 
 @Injectable()
 export class UsersService {
-  constructor(
-    private readonly repo: UsersRepository,
-    private readonly idGenerator: IdGeneratorService,
-  ) {}
+  constructor(private readonly repo: UsersRepository) {}
 
   async createUser(
     email: string,
     name: string,
     hashedPassword: string,
   ): Promise<User> {
-    const user: User = {
-      id: `u-${this.idGenerator.generateId()}`,
-      email,
-      name,
-      hashedPassword,
-    };
-    await this.repo.save(user);
-    return user;
+    return this.repo.create({ email, name, hashedPassword });
   }
 
   findUserByEmail(email: string): Promise<User | undefined> {

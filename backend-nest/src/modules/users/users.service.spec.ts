@@ -1,14 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { UsersRepository } from './users.repository';
-import { IdGeneratorService } from '../../common/id-generator.service';
+import { FakeUsersRepository } from './testing/fake-users.repository';
 
 describe('UsersService', () => {
   let service: UsersService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UsersService, UsersRepository, IdGeneratorService],
+      providers: [
+        UsersService,
+        { provide: UsersRepository, useClass: FakeUsersRepository },
+      ],
     }).compile();
 
     service = module.get<UsersService>(UsersService);
@@ -22,7 +25,9 @@ describe('UsersService', () => {
   });
 
   it('returns undefined for an unknown email', async () => {
-    await expect(service.findUserByEmail('missing@b.com')).resolves.toBeUndefined();
+    await expect(
+      service.findUserByEmail('missing@b.com'),
+    ).resolves.toBeUndefined();
   });
 
   it('toPublicUser strips the password hash', () => {
