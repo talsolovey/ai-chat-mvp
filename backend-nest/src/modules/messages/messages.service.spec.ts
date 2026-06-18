@@ -1,14 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MessagesService } from './messages.service';
 import { MessagesRepository } from './messages.repository';
-import { IdGeneratorService } from '../../common/id-generator.service';
+import { FakeMessagesRepository } from './testing/fake-messages.repository';
 
 describe('MessagesService', () => {
   let service: MessagesService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [MessagesService, MessagesRepository, IdGeneratorService],
+      providers: [
+        MessagesService,
+        { provide: MessagesRepository, useClass: FakeMessagesRepository },
+      ],
     }).compile();
 
     service = module.get<MessagesService>(MessagesService);
