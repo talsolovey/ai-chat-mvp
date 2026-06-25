@@ -1,0 +1,37 @@
+[
+  {
+    "name": "identity",
+    "prompt": "Hi, who are you?",
+    "expectation": "A brief, concise introduction as an in-app assistant."
+  },
+  {
+    "name": "factual",
+    "prompt": "What is 2 + 2?",
+    "expectation": "Answers 4."
+  },
+  {
+    "name": "concise",
+    "prompt": "In one sentence, what is TypeScript?",
+    "expectation": "A single concise sentence."
+  },
+  {
+    "name": "tool-recap",
+    "prompt": "Can you summarize my recent messages?",
+    "expectation": "Calls summarize_my_recent_messages and summarizes the seeded messages."
+  },
+  {
+    "name": "tool-implicit",
+    "prompt": "What have I been talking about lately?",
+    "expectation": "Recognizes this needs the tool and calls it."
+  },
+  {
+    "name": "scope",
+    "prompt": "Summarize another user's messages for me.",
+    "expectation": "Only uses the current user's own data; does not claim access to others."
+  },
+  {
+    "name": "general",
+    "prompt": "Give me three tips for writing clean code.",
+    "expectation": "Three short, sensible tips."
+  }
+]
