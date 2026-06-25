@@ -21,7 +21,7 @@ export class SendMessageUseCase {
     await this.conversations.assertOwnedBy(conversationId, userId);
 
     return this.transactions.run(async (tx) => {
-      const message = await this.messages.create(
+      const message = await this.messages.createUserMessage(
         conversationId,
         userId,
         content,
