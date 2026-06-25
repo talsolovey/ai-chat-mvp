@@ -1,37 +1,178 @@
-import fetchJson from "../../lib/fetchJson";
+import fetchJson, {
+  extractErrorMessage,
+  handleUnauthorizedResponse,
+  NETWORK_ERROR_MESSAGE,
+} from "../../lib/fetchJson";
+import { getToken } from "../../lib/tokenStorage";
 import type {
   GetMessagesResponse,
-  SendMessageResponse,
   SendMessageRequest,
+  AssistantStreamEvent,
 } from "./types";
+
+function parseAssistantStreamEvent(
+  rawPayload: string,
+): AssistantStreamEvent | null {
+  let parsedPayload: unknown;
+  try {
+    parsedPayload = JSON.parse(rawPayload);
+  } catch {
+    return null;
+  }
+
+  if (typeof parsedPayload !== "object" || parsedPayload === null) {
+    return null;
+  }
+
+  const candidateEvent = parsedPayload as Record<string, unknown>;
+
+  if (
+    candidateEvent.type === "token" &&
+    typeof candidateEvent.text === "string"
+  ) {
+    return { type: "token", text: candidateEvent.text };
+  }
+  if (
+    candidateEvent.type === "done" &&
+    typeof candidateEvent.messageId === "string" &&
+    typeof candidateEvent.sentAt === "string"
+  ) {
+    return {
+      type: "done",
+      messageId: candidateEvent.messageId,
+      sentAt: candidateEvent.sentAt,
+    };
+  }
+  if (
+    candidateEvent.type === "error" &&
+    typeof candidateEvent.message === "string"
+  ) {
+    return { type: "error", message: candidateEvent.message };
+  }
+  return null;
+}
 
 export function getMessages(
   conversationId: string,
   cursor?: string,
-  signal?: AbortSignal,
+  abortSignal?: AbortSignal,
 ): Promise<GetMessagesResponse> {
-  const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
-  const init: RequestInit = {
+  const cursorQueryString = cursor
+    ? `?cursor=${encodeURIComponent(cursor)}`
+    : "";
+  const requestInit: RequestInit = {
     method: "GET",
   };
-  if (signal) {
-    init.signal = signal;
+  if (abortSignal) {
+    requestInit.signal = abortSignal;
   }
   return fetchJson<GetMessagesResponse>(
-    `/api/conversations/${conversationId}/messages${query}`,
-    init,
+    `/api/conversations/${conversationId}/messages${cursorQueryString}`,
+    requestInit,
   );
 }
 
-export function sendMessage(
+export type AssistantStreamHandlers = {
+  onToken: (tokenText: string) => void;
+  onDone: (completedMessage: { messageId: string; sentAt: string }) => void;
+  onError?: (errorMessage: string) => void;
+};
+
+export async function streamAssistantMessage(
   conversationId: string,
-  request: SendMessageRequest,
-): Promise<SendMessageResponse> {
-  return fetchJson<SendMessageResponse>(
-    `/api/conversations/${conversationId}/messages`,
-    {
-      method: "POST",
-      body: JSON.stringify(request),
-    },
-  );
+  sendMessageRequest: SendMessageRequest,
+  streamHandlers: AssistantStreamHandlers,
+  abortSignal?: AbortSignal,
+): Promise<void> {
+  const requestHeaders = new Headers({ "Content-Type": "application/json" });
+  const authToken = getToken();
+  if (authToken) {
+    requestHeaders.set("Authorization", `Bearer ${authToken}`);
+  }
+
+  const requestInit: RequestInit = {
+    method: "POST",
+    headers: requestHeaders,
+    body: JSON.stringify(sendMessageRequest),
+  };
+  if (abortSignal) {
+    requestInit.signal = abortSignal;
+  }
+
+  let httpResponse: Response;
+  try {
+    httpResponse = await fetch(
+      `/api/conversations/${conversationId}/messages`,
+      requestInit,
+    );
+  } catch {
+    streamHandlers.onError?.(NETWORK_ERROR_MESSAGE);
+    return;
+  }
+
+  handleUnauthorizedResponse(httpResponse, Boolean(authToken));
+
+  if (!httpResponse.ok || !httpResponse.body) {
+    streamHandlers.onError?.(await extractErrorMessage(httpResponse));
+    return;
+  }
+
+  const responseBodyReader = httpResponse.body.getReader();
+  const textDecoder = new TextDecoder();
+  let serverSentEventBuffer = "";
+
+  for (;;) {
+    const { value: chunkBytes, done: streamFinished } =
+      await responseBodyReader.read();
+    if (streamFinished) {
+      break;
+    }
+    serverSentEventBuffer += textDecoder.decode(chunkBytes, { stream: true });
+
+    let frameBoundaryIndex = serverSentEventBuffer.indexOf("\n\n");
+    while (frameBoundaryIndex !== -1) {
+      const serverSentEventFrame = serverSentEventBuffer.slice(
+        0,
+        frameBoundaryIndex,
+      );
+      serverSentEventBuffer = serverSentEventBuffer.slice(
+        frameBoundaryIndex + 2,
+      );
+      parseAndDispatchServerSentEventFrame(serverSentEventFrame, streamHandlers);
+      frameBoundaryIndex = serverSentEventBuffer.indexOf("\n\n");
+    }
+  }
+}
+
+function parseAndDispatchServerSentEventFrame(
+  serverSentEventFrame: string,
+  streamHandlers: AssistantStreamHandlers,
+): void {
+  const dataFieldLine = serverSentEventFrame
+    .split("\n")
+    .find((frameLine) => frameLine.startsWith("data:"));
+  if (!dataFieldLine) {
+    return;
+  }
+
+  const eventPayloadJson = dataFieldLine.slice("data:".length).trim();
+  if (!eventPayloadJson) {
+    return;
+  }
+
+  const streamEvent = parseAssistantStreamEvent(eventPayloadJson);
+  if (!streamEvent) {
+    return;
+  }
+
+  if (streamEvent.type === "token") {
+    streamHandlers.onToken(streamEvent.text);
+  } else if (streamEvent.type === "done") {
+    streamHandlers.onDone({
+      messageId: streamEvent.messageId,
+      sentAt: streamEvent.sentAt,
+    });
+  } else if (streamEvent.type === "error") {
+    streamHandlers.onError?.(streamEvent.message);
+  }
 }
