@@ -11,6 +11,10 @@ class EnvironmentVariables {
     message: 'MONGO_URI must be a valid mongodb:// connection string',
   })
   MONGO_URI!: string;
+
+  @IsString()
+  @MinLength(1, { message: 'OPENAI_API_KEY must not be empty' })
+  OPENAI_API_KEY!: string;
 }
 
 export function validate(
