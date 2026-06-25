@@ -22,6 +22,7 @@ export class ConversationsController {
     return this.conversationsService.createConversationForUser(
       user.id,
       dto.title,
+      dto.type,
     );
   }
 }

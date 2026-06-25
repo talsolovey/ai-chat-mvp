@@ -41,6 +41,7 @@ export class MongoConversationsRepository extends ConversationsRepository {
   async create(input: Omit<Conversation, 'id'>): Promise<Conversation> {
     const doc = await this.conversationModel.create({
       title: input.title,
+      type: input.type,
       lastMessageSnippet: input.lastMessageSnippet,
       lastMessageAt: new Date(input.lastMessageAt),
       userId: input.userId,
@@ -71,6 +72,7 @@ export class MongoConversationsRepository extends ConversationsRepository {
     return {
       id: String(doc._id),
       title: doc.title,
+      type: doc.type,
       lastMessageSnippet: doc.lastMessageSnippet,
       lastMessageAt: doc.lastMessageAt.toISOString(),
       userId: doc.userId.toString(),

@@ -1,10 +1,14 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
+import type { ConversationType } from '../conversations.entity';
 
 @Schema({ timestamps: true })
 export class ConversationDocument {
   @Prop({ required: true })
   title!: string;
+
+  @Prop({ type: String, enum: ['chat', 'assistant'], default: 'chat' })
+  type!: ConversationType;
 
   @Prop({ default: '' })
   lastMessageSnippet!: string;
