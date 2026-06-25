@@ -28,7 +28,7 @@ export class MessagesService {
     return { messages, nextCursor };
   }
 
-  async create(
+  async createUserMessage(
     conversationId: string,
     userId: UserId,
     content: string,
@@ -37,11 +37,40 @@ export class MessagesService {
     return this.repo.create(
       {
         conversationId,
+        role: 'user',
         senderId: userId,
         sentAt: new Date().toISOString(),
         content,
       },
       tx,
     );
+  }
+
+  async createAssistantMessage(
+    conversationId: string,
+    content: string,
+    tx?: TransactionContext,
+  ): Promise<Message> {
+    return this.repo.create(
+      {
+        conversationId,
+        role: 'assistant',
+        senderId: null,
+        sentAt: new Date().toISOString(),
+        content,
+      },
+      tx,
+    );
+  }
+
+  async getRecentHistory(
+    conversationId: string,
+    limit: number,
+  ): Promise<Message[]> {
+    return this.repo.findRecentChronological(conversationId, limit);
+  }
+
+  async getRecentByUser(userId: UserId, limit: number): Promise<Message[]> {
+    return this.repo.findRecentByUser(userId, limit);
   }
 }

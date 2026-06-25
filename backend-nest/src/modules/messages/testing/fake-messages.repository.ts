@@ -1,4 +1,5 @@
 import { Message } from '../messages.entity';
+import { UserId } from '../../users/user.entity';
 import { MessagesRepository } from '../messages.repository';
 import { TransactionContext } from '../../../common/persistence/transaction-runner';
 
@@ -22,6 +23,21 @@ export class FakeMessagesRepository extends MessagesRepository {
     const hasMore = slice.length > options.limit;
     const page = hasMore ? slice.slice(0, options.limit) : slice;
     return Promise.resolve({ messages: page, hasMore });
+  }
+
+  findRecentChronological(
+    conversationId: string,
+    limit: number,
+  ): Promise<Message[]> {
+    const history = this.messages.filter(
+      (m) => m.conversationId === conversationId,
+    );
+    return Promise.resolve(history.slice(-limit));
+  }
+
+  findRecentByUser(userId: UserId, limit: number): Promise<Message[]> {
+    const authored = this.messages.filter((m) => m.senderId === userId);
+    return Promise.resolve(authored.slice(-limit));
   }
 
   create(

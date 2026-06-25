@@ -45,6 +45,7 @@ describe('MongoMessagesRepository (integration)', () => {
   it('persists a message and reads it back with a Mongo-generated string id', async () => {
     const created = await repo.create({
       conversationId: conversationA,
+      role: 'user',
       senderId,
       sentAt: new Date().toISOString(),
       content: 'hello',
@@ -61,12 +62,14 @@ describe('MongoMessagesRepository (integration)', () => {
   it('isolates messages by conversation', async () => {
     await repo.create({
       conversationId: conversationA,
+      role: 'user',
       senderId,
       sentAt: new Date().toISOString(),
       content: 'one',
     });
     await repo.create({
       conversationId: conversationB,
+      role: 'user',
       senderId,
       sentAt: new Date().toISOString(),
       content: 'two',
@@ -82,6 +85,7 @@ describe('MongoMessagesRepository (integration)', () => {
 
     const created = await repo.create({
       conversationId: conversationA,
+      role: 'user',
       senderId,
       sentAt,
       content: 'x',
@@ -110,6 +114,7 @@ describe('MongoMessagesRepository (integration)', () => {
     for (let i = 0; i < 105; i++) {
       await repo.create({
         conversationId: conversationA,
+        role: 'user',
         senderId,
         sentAt: new Date(Date.now() + i).toISOString(),
         content: `m${i}`,
