@@ -122,6 +122,7 @@ export function useConversations(): UseConversationsResult {
 
       const conversation = await conversationsApi.createConversation({
         title: trimmed,
+        type: "assistant",
       });
       dispatch({ type: "create/success", payload: conversation });
       return conversation;

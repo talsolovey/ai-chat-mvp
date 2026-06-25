@@ -20,8 +20,19 @@ export type MessageThreadAction =
   | { type: "older/success"; payload: Page }
   | { type: "older/error" }
   | { type: "send/optimistic"; payload: Message }
-  | { type: "send/success"; payload: Message; tempId: string }
-  | { type: "send/error"; payload: Error; tempId: string }
+  | { type: "assistant/start"; payload: Message }
+  | { type: "assistant/token"; payload: { id: string; text: string } }
+  | {
+      type: "assistant/done";
+      tempId: string;
+      payload: { messageId: string; sentAt: string };
+    }
+  | {
+      type: "assistant/error";
+      payload: Error;
+      userTempId: string;
+      assistantTempId: string;
+    }
   | { type: "sendError/clear" };
 
 export const initialMessageThreadState: MessageThreadState = {
@@ -84,22 +95,42 @@ export function messageThreadReducer(
         messages: [...state.messages, action.payload],
       };
 
-    case "send/success":
+    case "assistant/start":
+      return {
+        ...state,
+        messages: [...state.messages, action.payload],
+      };
+
+    case "assistant/token":
+      return {
+        ...state,
+        messages: state.messages.map((m) =>
+          m.id === action.payload.id
+            ? { ...m, content: m.content + action.payload.text }
+            : m,
+        ),
+      };
+
+    case "assistant/done":
       return {
         ...state,
         isSending: false,
-        messages: [
-          ...state.messages.filter((m) => m.id !== action.tempId),
-          action.payload,
-        ],
+        messages: state.messages.map((m) =>
+          m.id === action.tempId
+            ? { ...m, id: action.payload.messageId, sentAt: action.payload.sentAt }
+            : m,
+        ),
       };
 
-    case "send/error":
+    case "assistant/error":
       return {
         ...state,
         isSending: false,
         sendError: action.payload,
-        messages: state.messages.filter((m) => m.id !== action.tempId),
+        messages: state.messages.filter(
+          (m) =>
+            m.id !== action.userTempId && m.id !== action.assistantTempId,
+        ),
       };
 
     case "sendError/clear":
