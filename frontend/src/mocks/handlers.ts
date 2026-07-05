@@ -203,6 +203,11 @@ const sendMessageHandler = http.post(
   },
 );
 
+const getKnowledgeDocumentsHandler = http.get(
+  "/api/knowledge/documents",
+  () => HttpResponse.json([]),
+);
+
 export const handlers = [
   signupHandler,
   loginHandler,
@@ -211,4 +216,5 @@ export const handlers = [
   createConversationHandler,
   getMessagesHandler,
   sendMessageHandler,
+  getKnowledgeDocumentsHandler,
 ];

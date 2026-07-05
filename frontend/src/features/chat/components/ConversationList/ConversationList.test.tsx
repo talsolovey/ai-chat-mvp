@@ -105,7 +105,7 @@ describe("ConversationList", () => {
     await user.click(screen.getByRole("button", { name: /new conversation/i }));
 
     expect(onCreate).toHaveBeenCalledTimes(1);
-    expect(onCreate).toHaveBeenCalledWith("Design sync");
+    expect(onCreate).toHaveBeenCalledWith("Design sync", "chat");
   });
 
   it("disables the create button until a title is entered", () => {

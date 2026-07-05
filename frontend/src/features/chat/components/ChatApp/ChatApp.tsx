@@ -1,9 +1,11 @@
 import { useState, type ReactElement } from "react";
 import ConversationList from "../ConversationList";
+import KnowledgePanel from "../../../knowledge/components/KnowledgePanel";
 import MessageThread from "../MessageThread";
 import Toast from "../../../../components/Toast";
 import { useConversations } from "../../hooks/useConversations";
 import { useMessages } from "../../hooks/useMessages";
+import type { ConversationType } from "../../types";
 import type { User } from "../../../auth/types";
 import styles from "./ChatApp.module.css";
 
@@ -25,10 +27,15 @@ export default function ChatApp({ currentUser }: ChatAppProps): ReactElement {
   >(null);
 
   const selectedConversation =
-    conversations.find((c) => c.id === selectedConversationId) ?? null;
+    conversations.find(
+      (conversation) => conversation.id === selectedConversationId,
+    ) ?? null;
 
-  function handleCreateConversation(title: string): void {
-    void createConversation(title).then((conversation) => {
+  function handleCreateConversation(
+    title: string,
+    type: ConversationType,
+  ): void {
+    void createConversation(title, type).then((conversation) => {
       if (conversation) {
         setSelectedConversationId(conversation.id);
       }
@@ -43,25 +50,24 @@ export default function ChatApp({ currentUser }: ChatAppProps): ReactElement {
   const [messageText, setMessageText] = useState<string>("");
 
   async function handleSend(): Promise<void> {
-    if (!messageText.trim()) {
+    const trimmedMessageText = messageText.trim();
+    if (!trimmedMessageText) {
       return;
     }
-    const text = messageText.trim();
     const conversationId = selectedConversationId;
     setMessageText("");
-    void sendMessage(text).then((success) => {
-      if (!success) {
-        setMessageText(text);
-        return;
-      }
-      if (conversationId) {
-        updateConversationPreview(
-          conversationId,
-          text,
-          new Date().toISOString(),
-        );
-      }
-    });
+    const sentSuccessfully = await sendMessage(trimmedMessageText);
+    if (!sentSuccessfully) {
+      setMessageText(trimmedMessageText);
+      return;
+    }
+    if (conversationId) {
+      updateConversationPreview(
+        conversationId,
+        trimmedMessageText,
+        new Date().toISOString(),
+      );
+    }
   }
 
   return (
@@ -85,6 +91,11 @@ export default function ChatApp({ currentUser }: ChatAppProps): ReactElement {
           onSendMessage={handleSend}
           onLoadOlder={loadOlder}
         />
+        {selectedConversation?.type === "tutor" && (
+          <aside className={styles.knowledgeSidebar}>
+            <KnowledgePanel />
+          </aside>
+        )}
       </div>
 
       {thread.sendError && (

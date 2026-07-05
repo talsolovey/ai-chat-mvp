@@ -49,15 +49,13 @@ function readMessage(body: unknown): string | null {
 }
 
 export async function extractErrorMessage(response: Response): Promise<string> {
+  const fallbackMessage =
+    response.status >= 500 ? SERVER_ERROR_MESSAGE : GENERIC_ERROR_MESSAGE;
   try {
-    const message = readMessage((await response.json()) as unknown);
-    if (message) {
-      return message;
-    }
+    return readMessage((await response.json()) as unknown) ?? fallbackMessage;
   } catch {
-    // No (or non-JSON) body — e.g. a proxy 502 HTML page. Fall through.
+    return fallbackMessage;
   }
-  return response.status >= 500 ? SERVER_ERROR_MESSAGE : GENERIC_ERROR_MESSAGE;
 }
 
 export function handleUnauthorizedResponse(
@@ -72,7 +70,9 @@ export function handleUnauthorizedResponse(
 
 async function fetchJson<T>(url: string, options: RequestInit): Promise<T> {
   const headers = new Headers(options.headers ?? {});
-  if (options.body !== undefined && !headers.has("Content-Type")) {
+  const bodyNeedsJsonContentType =
+    options.body !== undefined && !(options.body instanceof FormData);
+  if (bodyNeedsJsonContentType && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -85,7 +85,6 @@ async function fetchJson<T>(url: string, options: RequestInit): Promise<T> {
   try {
     response = await fetch(url, { ...options, headers });
   } catch {
-    // fetch rejects on network failure (server down, DNS, CORS, offline).
     throw new ApiError(NETWORK_ERROR_MESSAGE, 0);
   }
 
@@ -93,6 +92,10 @@ async function fetchJson<T>(url: string, options: RequestInit): Promise<T> {
 
   if (!response.ok) {
     throw new ApiError(await extractErrorMessage(response), response.status);
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
   }
 
   return (await response.json()) as T;

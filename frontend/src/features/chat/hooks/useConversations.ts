@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useReducer } from "react";
-import type { Conversation } from "../types";
+import type { Conversation, ConversationType } from "../types";
 import { conversations as conversationsApi } from "../../../lib/apiClient";
 
 export type UseConversationsResult = {
   conversations: Conversation[];
   conversationsLoading: boolean;
   conversationsError: Error | null;
-  createConversation: (title: string) => Promise<Conversation | null>;
+  createConversation: (
+    title: string,
+    type: ConversationType,
+  ) => Promise<Conversation | null>;
   updateConversationPreview: (
     conversationId: string,
     snippet: string,
@@ -114,7 +117,10 @@ export function useConversations(): UseConversationsResult {
   }, []);
 
   const createConversation = useCallback(
-    async (title: string): Promise<Conversation | null> => {
+    async (
+      title: string,
+      type: ConversationType,
+    ): Promise<Conversation | null> => {
       const trimmed = title.trim();
       if (!trimmed) {
         return null;
@@ -122,7 +128,7 @@ export function useConversations(): UseConversationsResult {
 
       const conversation = await conversationsApi.createConversation({
         title: trimmed,
-        type: "assistant",
+        type,
       });
       dispatch({ type: "create/success", payload: conversation });
       return conversation;

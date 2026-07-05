@@ -1,4 +1,4 @@
-export type ConversationType = "chat" | "assistant";
+export type ConversationType = "chat" | "assistant" | "tutor";
 
 export type Conversation = {
   id: string;
@@ -9,12 +9,20 @@ export type Conversation = {
   userId: string;
 };
 
+export type Citation = {
+  chunkId: string;
+  documentId: string;
+  documentName: string;
+  chunkText: string;
+};
+
 export type Message = {
   id: string;
   conversationId: string;
   senderId: string | null;
   sentAt: string;
   content: string;
+  citations?: Citation[];
 };
 
 export type GetConversationsResponse = Conversation[];
@@ -26,6 +34,7 @@ export type CreateConversationRequest = {
 
 export type AssistantStreamEvent =
   | { type: "token"; text: string }
+  | { type: "citations"; citations: Citation[] }
   | { type: "done"; messageId: string; sentAt: string }
   | { type: "error"; message: string };
 

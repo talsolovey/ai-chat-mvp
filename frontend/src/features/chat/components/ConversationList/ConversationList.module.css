@@ -104,3 +104,20 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.newTypeSelect {
+  padding: 8px 10px;
+  font-size: 0.9rem;
+}
+
+.itemTypeBadge {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--accent-strong, #4a6cf7);
+  color: #fff;
+  vertical-align: middle;
+}

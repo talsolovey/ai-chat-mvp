@@ -1,4 +1,4 @@
-import type { Message } from "../types";
+import type { Citation, Message } from "../types";
 
 export type MessageThreadState = {
   messages: Message[];
@@ -22,6 +22,10 @@ export type MessageThreadAction =
   | { type: "send/optimistic"; payload: Message }
   | { type: "assistant/start"; payload: Message }
   | { type: "assistant/token"; payload: { id: string; text: string } }
+  | {
+      type: "assistant/citations";
+      payload: { id: string; citations: Citation[] };
+    }
   | {
       type: "assistant/done";
       tempId: string;
@@ -104,10 +108,20 @@ export function messageThreadReducer(
     case "assistant/token":
       return {
         ...state,
-        messages: state.messages.map((m) =>
-          m.id === action.payload.id
-            ? { ...m, content: m.content + action.payload.text }
-            : m,
+        messages: state.messages.map((message) =>
+          message.id === action.payload.id
+            ? { ...message, content: message.content + action.payload.text }
+            : message,
+        ),
+      };
+
+    case "assistant/citations":
+      return {
+        ...state,
+        messages: state.messages.map((message) =>
+          message.id === action.payload.id
+            ? { ...message, citations: action.payload.citations }
+            : message,
         ),
       };
 
@@ -115,10 +129,14 @@ export function messageThreadReducer(
       return {
         ...state,
         isSending: false,
-        messages: state.messages.map((m) =>
-          m.id === action.tempId
-            ? { ...m, id: action.payload.messageId, sentAt: action.payload.sentAt }
-            : m,
+        messages: state.messages.map((message) =>
+          message.id === action.tempId
+            ? {
+                ...message,
+                id: action.payload.messageId,
+                sentAt: action.payload.sentAt,
+              }
+            : message,
         ),
       };
 
@@ -128,8 +146,9 @@ export function messageThreadReducer(
         isSending: false,
         sendError: action.payload,
         messages: state.messages.filter(
-          (m) =>
-            m.id !== action.userTempId && m.id !== action.assistantTempId,
+          (message) =>
+            message.id !== action.userTempId &&
+            message.id !== action.assistantTempId,
         ),
       };
 
