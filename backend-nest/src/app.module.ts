@@ -11,6 +11,7 @@ import jwtConfig from './config/jwt.config';
 import llmConfig from './config/llm.config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { LlmModule } from './modules/llm/llm.module';
+import { KnowledgeModule } from './modules/knowledge/knowledge.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { LlmModule } from './modules/llm/llm.module';
     }),
     AuthModule,
     LlmModule,
+    KnowledgeModule,
   ],
   controllers: [AppController],
 })

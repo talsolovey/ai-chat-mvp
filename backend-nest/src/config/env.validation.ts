@@ -1,5 +1,11 @@
 import { plainToInstance } from 'class-transformer';
-import { IsString, Matches, MinLength, validateSync } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  Matches,
+  MinLength,
+  validateSync,
+} from 'class-validator';
 
 class EnvironmentVariables {
   @IsString()
@@ -15,6 +21,10 @@ class EnvironmentVariables {
   @IsString()
   @MinLength(1, { message: 'OPENAI_API_KEY must not be empty' })
   OPENAI_API_KEY!: string;
+
+  @IsOptional()
+  @IsString()
+  OPENAI_EMBEDDING_MODEL?: string;
 }
 
 export function validate(
