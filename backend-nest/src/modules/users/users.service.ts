@@ -6,7 +6,7 @@ import { UsersRepository } from './users.repository';
 export class UsersService {
   constructor(private readonly repo: UsersRepository) {}
 
-  async createUser(
+  createUser(
     email: string,
     name: string,
     hashedPassword: string,

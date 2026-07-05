@@ -12,11 +12,11 @@ import { TransactionContext } from '../../common/persistence/transaction-runner'
 export class ConversationsService {
   constructor(private readonly repo: ConversationsRepository) {}
 
-  async getConversationsForUser(userId: UserId): Promise<Conversation[]> {
+  getConversationsForUser(userId: UserId): Promise<Conversation[]> {
     return this.repo.findByUser(userId);
   }
 
-  async createConversationForUser(
+  createConversationForUser(
     userId: UserId,
     title: string,
     type: ConversationType = 'chat',
