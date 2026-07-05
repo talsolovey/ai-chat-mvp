@@ -1,18 +1,13 @@
-import { Injectable } from '@nestjs/common';
 import { Message } from './messages.entity';
+import { TransactionContext } from '../../common/persistence/transaction-runner';
 
-@Injectable()
-export class MessagesRepository {
-  private messages: Message[] = [];
-
-  findByConversation(conversationId: string): Promise<Message[]> {
-    return Promise.resolve(
-      this.messages.filter((m) => m.conversationId === conversationId),
-    );
-  }
-
-  save(message: Message): Promise<void> {
-    this.messages.push(message);
-    return Promise.resolve();
-  }
+export abstract class MessagesRepository {
+  abstract findPage(
+    conversationId: string,
+    options: { cursor?: string; limit: number },
+  ): Promise<{ messages: Message[]; hasMore: boolean }>;
+  abstract create(
+    input: Omit<Message, 'id'>,
+    tx?: TransactionContext,
+  ): Promise<Message>;
 }

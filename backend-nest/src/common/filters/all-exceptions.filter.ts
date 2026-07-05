@@ -14,6 +14,7 @@ type ErrorCode =
   | 'FORBIDDEN'
   | 'NOT_FOUND'
   | 'CONFLICT'
+  | 'SERVICE_UNAVAILABLE'
   | 'INTERNAL';
 
 const CODE_BY_STATUS: Record<number, ErrorCode> = {
@@ -42,6 +43,20 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return;
     }
 
+    if (this.isDatabaseError(exception)) {
+      this.logger.error(
+        'Database error',
+        exception instanceof Error ? exception.stack : String(exception),
+      );
+      res.status(HttpStatus.SERVICE_UNAVAILABLE).json({
+        error: {
+          code: 'SERVICE_UNAVAILABLE',
+          message: 'The service is temporarily unavailable. Please try again shortly.',
+        },
+      });
+      return;
+    }
+
     this.logger.error(
       'Unhandled exception',
       exception instanceof Error ? exception.stack : String(exception),
@@ -49,6 +64,17 @@ export class AllExceptionsFilter implements ExceptionFilter {
     res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
       error: { code: 'INTERNAL', message: 'Something went wrong.' },
     });
+  }
+
+  private isDatabaseError(exception: unknown): boolean {
+    if (!(exception instanceof Error)) {
+      return false;
+    }
+    // Mongoose connection/buffering failures surface as MongooseError, and the
+    // underlying driver errors are all named Mongo* (e.g. MongoServerSelectionError).
+    return (
+      exception.name === 'MongooseError' || exception.name.startsWith('Mongo')
+    );
   }
 
   private extractMessage(exception: HttpException): string {
@@ -61,7 +87,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       response !== null &&
       'message' in response
     ) {
-      const message = (response as { message: unknown }).message;
+      const message = response.message;
       if (Array.isArray(message)) {
         return message.join(', ');
       }

@@ -1,14 +1,15 @@
 import { Global, Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
-import { IdGeneratorService } from './id-generator.service';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
+import { TransactionRunner } from './persistence/transaction-runner';
+import { MongoTransactionRunner } from './persistence/mongo-transaction.runner';
 
 @Global()
 @Module({
   providers: [
-    IdGeneratorService,
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
+    { provide: TransactionRunner, useClass: MongoTransactionRunner },
   ],
-  exports: [IdGeneratorService],
+  exports: [TransactionRunner],
 })
 export class CommonModule {}

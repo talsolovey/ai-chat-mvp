@@ -1,10 +1,16 @@
 import { plainToInstance } from 'class-transformer';
-import { IsString, MinLength, validateSync } from 'class-validator';
+import { IsString, Matches, MinLength, validateSync } from 'class-validator';
 
 class EnvironmentVariables {
   @IsString()
   @MinLength(16, { message: 'JWT_SECRET must be at least 16 characters' })
   JWT_SECRET!: string;
+
+  @IsString()
+  @Matches(/^mongodb(\+srv)?:\/\//, {
+    message: 'MONGO_URI must be a valid mongodb:// connection string',
+  })
+  MONGO_URI!: string;
 }
 
 export function validate(

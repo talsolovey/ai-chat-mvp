@@ -1,46 +1,66 @@
 import { getToken, clearToken } from "./tokenStorage";
 import { notifyUnauthorized } from "./authEvents";
 
-async function extractErrorMessage(
-  response: Response,
-  url: string,
-): Promise<string> {
-  const fallback = `HTTP ${response.status} on ${url}`;
-  try {
-    const body = (await response.json()) as unknown;
-    if (typeof body !== "object" || body === null) {
-      return fallback;
-    }
+export const NETWORK_ERROR_MESSAGE =
+  "Unable to reach the server. Please check your connection and try again.";
+export const SERVER_ERROR_MESSAGE =
+  "The server is temporarily unavailable. Please try again in a moment.";
+export const GENERIC_ERROR_MESSAGE = "Something went wrong. Please try again.";
 
-    if ("message" in body) {
-      const { message } = body as { message: unknown };
-      if (typeof message === "string") {
-        return message;
-      }
-      if (
-        Array.isArray(message) &&
-        message.every((m): m is string => typeof m === "string")
-      ) {
-        return message.join(", ");
-      }
-    }
+export class ApiError extends Error {
+  readonly status: number;
 
-    if (
-      "error" in body &&
-      typeof body.error === "object" &&
-      body.error !== null &&
-      "message" in body.error &&
-      typeof body.error.message === "string"
-    ) {
-      return body.error.message;
-    }
-  } catch {
-    return fallback;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
   }
-  return fallback;
 }
 
-function fetchJson<T>(url: string, options: RequestInit): Promise<T> {
+function readMessage(body: unknown): string | null {
+  if (typeof body !== "object" || body === null) {
+    return null;
+  }
+
+  if ("message" in body) {
+    const { message } = body as { message: unknown };
+    if (typeof message === "string") {
+      return message;
+    }
+    if (
+      Array.isArray(message) &&
+      message.every((m): m is string => typeof m === "string")
+    ) {
+      return message.join(", ");
+    }
+  }
+
+  if (
+    "error" in body &&
+    typeof body.error === "object" &&
+    body.error !== null &&
+    "message" in body.error &&
+    typeof (body.error as { message: unknown }).message === "string"
+  ) {
+    return (body.error as { message: string }).message;
+  }
+
+  return null;
+}
+
+async function extractErrorMessage(response: Response): Promise<string> {
+  try {
+    const message = readMessage((await response.json()) as unknown);
+    if (message) {
+      return message;
+    }
+  } catch {
+    // No (or non-JSON) body — e.g. a proxy 502 HTML page. Fall through.
+  }
+  return response.status >= 500 ? SERVER_ERROR_MESSAGE : GENERIC_ERROR_MESSAGE;
+}
+
+async function fetchJson<T>(url: string, options: RequestInit): Promise<T> {
   const headers = new Headers(options.headers ?? {});
   if (options.body !== undefined && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
@@ -51,16 +71,24 @@ function fetchJson<T>(url: string, options: RequestInit): Promise<T> {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  return fetch(url, { ...options, headers }).then(async (response) => {
-    if (response.status === 401 && token) {
-      clearToken();
-      notifyUnauthorized();
-    }
-    if (!response.ok) {
-      throw new Error(await extractErrorMessage(response, url));
-    }
-    return await response.json();
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, { ...options, headers });
+  } catch {
+    // fetch rejects on network failure (server down, DNS, CORS, offline).
+    throw new ApiError(NETWORK_ERROR_MESSAGE, 0);
+  }
+
+  if (response.status === 401 && token) {
+    clearToken();
+    notifyUnauthorized();
+  }
+
+  if (!response.ok) {
+    throw new ApiError(await extractErrorMessage(response), response.status);
+  }
+
+  return (await response.json()) as T;
 }
 
 export default fetchJson;

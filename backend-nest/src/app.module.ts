@@ -3,11 +3,12 @@ import { AppController } from './app.controller';
 import { ConversationsModule } from './modules/conversations/conversations.module';
 import { MessagesModule } from './modules/messages/messages.module';
 import { UsersModule } from './modules/users/users.module';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { validate } from './config/env.validation';
 import jwtConfig from './config/jwt.config';
+import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
   imports: [
@@ -19,6 +20,12 @@ import jwtConfig from './config/jwt.config';
       isGlobal: true,
       validate,
       load: [jwtConfig],
+    }),
+    MongooseModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGO_URI'),
+      }),
     }),
     AuthModule,
   ],
