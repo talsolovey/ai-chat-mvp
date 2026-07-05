@@ -1,6 +1,6 @@
 import { UserId } from '../users/user.entity';
 
-export type ConversationType = 'chat' | 'assistant';
+export type ConversationType = 'chat' | 'assistant' | 'tutor';
 
 export type Conversation = {
   id: string;

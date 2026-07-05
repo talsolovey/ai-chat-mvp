@@ -90,6 +90,7 @@ export class MongoMessagesRepository extends MessagesRepository {
           senderId: input.senderId,
           content: input.content,
           sentAt: new Date(input.sentAt),
+          citations: input.citations,
         },
       ],
       { session },
@@ -105,6 +106,7 @@ export class MongoMessagesRepository extends MessagesRepository {
       senderId: doc.senderId ? doc.senderId.toString() : null,
       sentAt: doc.sentAt.toISOString(),
       content: doc.content,
+      ...(doc.citations ? { citations: doc.citations } : {}),
     };
   }
 }
