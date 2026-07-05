@@ -48,7 +48,7 @@ function readMessage(body: unknown): string | null {
   return null;
 }
 
-async function extractErrorMessage(response: Response): Promise<string> {
+export async function extractErrorMessage(response: Response): Promise<string> {
   try {
     const message = readMessage((await response.json()) as unknown);
     if (message) {
@@ -58,6 +58,16 @@ async function extractErrorMessage(response: Response): Promise<string> {
     // No (or non-JSON) body — e.g. a proxy 502 HTML page. Fall through.
   }
   return response.status >= 500 ? SERVER_ERROR_MESSAGE : GENERIC_ERROR_MESSAGE;
+}
+
+export function handleUnauthorizedResponse(
+  response: Response,
+  requestHadToken: boolean,
+): void {
+  if (response.status === 401 && requestHadToken) {
+    clearToken();
+    notifyUnauthorized();
+  }
 }
 
 async function fetchJson<T>(url: string, options: RequestInit): Promise<T> {
@@ -79,10 +89,7 @@ async function fetchJson<T>(url: string, options: RequestInit): Promise<T> {
     throw new ApiError(NETWORK_ERROR_MESSAGE, 0);
   }
 
-  if (response.status === 401 && token) {
-    clearToken();
-    notifyUnauthorized();
-  }
+  handleUnauthorizedResponse(response, Boolean(token));
 
   if (!response.ok) {
     throw new ApiError(await extractErrorMessage(response), response.status);

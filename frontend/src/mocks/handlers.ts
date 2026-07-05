@@ -86,7 +86,7 @@ const createConversationHandler = http.post(
       return errorResponse(401, "Unauthorized", "Unauthorized");
     }
 
-    const { title } = (await request.json()) as CreateConversationRequest;
+    const { title, type } = (await request.json()) as CreateConversationRequest;
     if (typeof title !== "string" || title.trim() === "") {
       return errorResponse(400, "Bad Request", "title is required");
     }
@@ -94,6 +94,7 @@ const createConversationHandler = http.post(
     const newConversation: Conversation = {
       id: crypto.randomUUID(),
       title: title.trim(),
+      type: type ?? "chat",
       lastMessageSnippet: "",
       lastMessageAt: new Date().toISOString(),
       userId: user.id,
@@ -135,12 +136,17 @@ const sendMessageHandler = http.post(
   "/api/conversations/:id/messages",
   async ({ params, request }) => {
     const { id } = params;
-    const user = userFromAuthHeader(request);
-    const body = (await request.json()) as SendMessageRequest;
+    const authenticatedUser = userFromAuthHeader(request);
+    const sendMessageBody = (await request.json()) as SendMessageRequest;
 
-    await delay(300);
+    await delay(50);
 
-    if (body.content.trim().toLowerCase().startsWith(SEND_FAILURE_TRIGGER)) {
+    if (
+      sendMessageBody.content
+        .trim()
+        .toLowerCase()
+        .startsWith(SEND_FAILURE_TRIGGER)
+    ) {
       return errorResponse(
         500,
         "Internal Server Error",
@@ -148,16 +154,52 @@ const sendMessageHandler = http.post(
       );
     }
 
-    const newMessage: Message = {
+    const persistedUserMessage: Message = {
       id: crypto.randomUUID(),
       conversationId: String(id),
-      senderId: user?.id ?? "",
+      senderId: authenticatedUser?.id ?? "",
       sentAt: new Date().toISOString(),
-      content: body.content,
+      content: sendMessageBody.content,
     };
+    messages.push(persistedUserMessage);
 
-    messages.push(newMessage);
-    return HttpResponse.json(newMessage, { status: 201 });
+    const assistantReplyText = "Hi there!";
+    const assistantMessageId = crypto.randomUUID();
+    const textEncoder = new TextEncoder();
+
+    const serverSentEventStream = new ReadableStream<Uint8Array>({
+      start(streamController) {
+        const enqueueServerSentEvent = (streamEvent: unknown): void => {
+          streamController.enqueue(
+            textEncoder.encode(`data: ${JSON.stringify(streamEvent)}\n\n`),
+          );
+        };
+
+        enqueueServerSentEvent({ type: "token", text: "Hi " });
+        enqueueServerSentEvent({ type: "token", text: "there!" });
+
+        const persistedAssistantMessage: Message = {
+          id: assistantMessageId,
+          conversationId: String(id),
+          senderId: null,
+          sentAt: new Date().toISOString(),
+          content: assistantReplyText,
+        };
+        messages.push(persistedAssistantMessage);
+
+        enqueueServerSentEvent({
+          type: "done",
+          messageId: assistantMessageId,
+          sentAt: persistedAssistantMessage.sentAt,
+        });
+        streamController.close();
+      },
+    });
+
+    return new HttpResponse(serverSentEventStream, {
+      status: 200,
+      headers: { "Content-Type": "text/event-stream" },
+    });
   },
 );
 

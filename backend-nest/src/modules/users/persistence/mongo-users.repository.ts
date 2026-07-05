@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { User } from '../user.entity';
 import { UsersRepository } from '../users.repository';
-import { UserDocument } from './user.schema';
+import { UserDocument, UserHydratedDocument } from './user.schema';
 
 @Injectable()
 export class MongoUsersRepository extends UsersRepository {
@@ -14,38 +14,34 @@ export class MongoUsersRepository extends UsersRepository {
     super();
   }
 
-  findByEmail(email: string): Promise<User | undefined> {
-    return this.userModel
-      .findOne({ email })
-      .lean()
-      .exec()
-      .then((userDoc) => (userDoc ? this.toUserEntity(userDoc) : undefined));
+  async findByEmail(email: string): Promise<User | undefined> {
+    const doc = await this.userModel.findOne({ email }).exec();
+    return doc ? this.toEntity(doc) : undefined;
   }
 
   async findById(id: string): Promise<User | undefined> {
     if (!Types.ObjectId.isValid(id)) {
       return undefined;
     }
-    const userDoc = await this.userModel.findById(id).lean().exec();
-    return userDoc ? this.toUserEntity(userDoc) : undefined;
+    const doc = await this.userModel.findById(id).exec();
+    return doc ? this.toEntity(doc) : undefined;
   }
 
-  create(input: Omit<User, 'id'>): Promise<User> {
-    return this.userModel
-      .create({
-        email: input.email,
-        name: input.name,
-        hashedPassword: input.hashedPassword,
-      })
-      .then((userDoc) => this.toUserEntity(userDoc));
+  async create(input: Omit<User, 'id'>): Promise<User> {
+    const doc = await this.userModel.create({
+      email: input.email,
+      name: input.name,
+      hashedPassword: input.hashedPassword,
+    });
+    return this.toEntity(doc);
   }
 
-  private toUserEntity(userDoc: UserDocument & { _id: Types.ObjectId }): User {
+  private toEntity(doc: UserHydratedDocument): User {
     return {
-      id: String(userDoc._id),
-      email: userDoc.email,
-      name: userDoc.name,
-      hashedPassword: userDoc.hashedPassword,
+      id: String(doc._id),
+      email: doc.email,
+      name: doc.name,
+      hashedPassword: doc.hashedPassword,
     };
   }
 }

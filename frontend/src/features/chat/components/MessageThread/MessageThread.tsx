@@ -42,14 +42,16 @@ export default function MessageThread({
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
-  const lastMessageId =
+  const lastMessage =
     sortedMessages.length > 0
-      ? sortedMessages[sortedMessages.length - 1].id
+      ? sortedMessages[sortedMessages.length - 1]
       : null;
+  const lastMessageId = lastMessage?.id ?? null;
+  const lastMessageContentLength = lastMessage?.content.length ?? 0;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [lastMessageId]);
+  }, [lastMessageId, lastMessageContentLength]);
 
   const distanceFromBottomRef = useRef(0);
   const wasLoadingOlderRef = useRef(false);
@@ -156,7 +158,7 @@ export default function MessageThread({
           messageText={messageText}
           onMessageTextChange={onMessageTextChange}
           onSendMessage={onSendMessage}
-          disabled={thread.isLoading}
+          disabled={thread.isLoading || thread.isSending}
         />
       )}
     </div>

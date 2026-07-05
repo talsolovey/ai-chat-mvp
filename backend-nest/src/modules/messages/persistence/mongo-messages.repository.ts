@@ -2,10 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Model, Types } from 'mongoose';
 import { Message } from '../messages.entity';
+import { UserId } from '../../users/user.entity';
 import { MessagesRepository } from '../messages.repository';
 import { TransactionContext } from '../../../common/persistence/transaction-runner';
-import { decodeMessageCursor } from '../message-cursor';
-import { MessageDocument } from './message.schema';
+import { MessageDocument, MessageHydratedDocument } from './message.schema';
 
 @Injectable()
 export class MongoMessagesRepository extends MessagesRepository {
@@ -24,66 +24,87 @@ export class MongoMessagesRepository extends MessagesRepository {
       return { messages: [], hasMore: false };
     }
 
-    let query = this.messageModel.find({ conversationId });
-
-    if (options.cursor) {
-      const cursor = decodeMessageCursor(options.cursor);
-      if (!cursor || !Types.ObjectId.isValid(cursor.id)) {
-        return { messages: [], hasMore: false };
-      }
-      const sentAt = new Date(cursor.sentAt);
-      if (Number.isNaN(sentAt.getTime())) {
-        return { messages: [], hasMore: false };
-      }
-      query = this.messageModel.find({
-        conversationId,
-        $or: [
-          { sentAt: { $lt: sentAt } },
-          { sentAt, _id: { $lt: new Types.ObjectId(cursor.id) } },
-        ],
-      });
+    if (options.cursor && !Types.ObjectId.isValid(options.cursor)) {
+      return { messages: [], hasMore: false };
     }
 
-    const docs = await query
-      .sort({ sentAt: -1, _id: -1 })
+    const docs = await this.messageModel
+      .find(
+        options.cursor
+          ? {
+              conversationId,
+              _id: { $lt: new Types.ObjectId(options.cursor) },
+            }
+          : { conversationId },
+      )
+      .sort({ _id: -1 })
       .limit(options.limit + 1)
-      .lean()
       .exec();
 
     const hasMore = docs.length > options.limit;
     const page = hasMore ? docs.slice(0, options.limit) : docs;
-    return {
-      messages: page.map((messageDoc) => this.toMessageEntity(messageDoc)),
-      hasMore,
-    };
+    return { messages: page.map((doc) => this.toEntity(doc)), hasMore };
   }
 
-  create(input: Omit<Message, 'id'>, tx?: TransactionContext): Promise<Message> {
+  async findRecentChronological(
+    conversationId: string,
+    limit: number,
+  ): Promise<Message[]> {
+    if (!Types.ObjectId.isValid(conversationId)) {
+      return [];
+    }
+
+    const docs = await this.messageModel
+      .find({ conversationId })
+      .sort({ _id: -1 })
+      .limit(limit)
+      .exec();
+
+    return docs.reverse().map((doc) => this.toEntity(doc));
+  }
+
+  async findRecentByUser(userId: UserId, limit: number): Promise<Message[]> {
+    if (!Types.ObjectId.isValid(userId)) {
+      return [];
+    }
+
+    const docs = await this.messageModel
+      .find({ senderId: new Types.ObjectId(userId) })
+      .sort({ _id: -1 })
+      .limit(limit)
+      .exec();
+
+    return docs.reverse().map((doc) => this.toEntity(doc));
+  }
+
+  async create(
+    input: Omit<Message, 'id'>,
+    tx?: TransactionContext,
+  ): Promise<Message> {
     const session = tx as ClientSession | undefined;
-    return this.messageModel
-      .create(
-        [
-          {
-            conversationId: input.conversationId,
-            senderId: input.senderId,
-            content: input.content,
-            sentAt: new Date(input.sentAt),
-          },
-        ],
-        { session },
-      )
-      .then(([messageDoc]) => this.toMessageEntity(messageDoc));
+    const [doc] = await this.messageModel.create(
+      [
+        {
+          conversationId: input.conversationId,
+          role: input.role,
+          senderId: input.senderId,
+          content: input.content,
+          sentAt: new Date(input.sentAt),
+        },
+      ],
+      { session },
+    );
+    return this.toEntity(doc);
   }
 
-  private toMessageEntity(
-    messageDoc: MessageDocument & { _id: Types.ObjectId },
-  ): Message {
+  private toEntity(doc: MessageHydratedDocument): Message {
     return {
-      id: String(messageDoc._id),
-      conversationId: messageDoc.conversationId.toString(),
-      senderId: messageDoc.senderId.toString(),
-      sentAt: messageDoc.sentAt.toISOString(),
-      content: messageDoc.content,
+      id: String(doc._id),
+      conversationId: doc.conversationId.toString(),
+      role: doc.role,
+      senderId: doc.senderId ? doc.senderId.toString() : null,
+      sentAt: doc.sentAt.toISOString(),
+      content: doc.content,
     };
   }
 }

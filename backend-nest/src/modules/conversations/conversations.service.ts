@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Conversation } from './conversations.entity';
+import { Conversation, ConversationType } from './conversations.entity';
 import { UserId } from '../users/user.entity';
 import { ConversationsRepository } from './conversations.repository';
 import { TransactionContext } from '../../common/persistence/transaction-runner';
@@ -19,9 +19,11 @@ export class ConversationsService {
   createConversationForUser(
     userId: UserId,
     title: string,
+    type: ConversationType = 'chat',
   ): Promise<Conversation> {
     return this.repo.create({
       title,
+      type,
       lastMessageSnippet: '',
       lastMessageAt: new Date().toISOString(),
       userId,

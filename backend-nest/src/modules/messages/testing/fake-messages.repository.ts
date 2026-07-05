@@ -1,6 +1,6 @@
 import { Message } from '../messages.entity';
+import { UserId } from '../../users/user.entity';
 import { MessagesRepository } from '../messages.repository';
-import { decodeMessageCursor } from '../message-cursor';
 import { TransactionContext } from '../../../common/persistence/transaction-runner';
 
 export class FakeMessagesRepository extends MessagesRepository {
@@ -13,31 +13,31 @@ export class FakeMessagesRepository extends MessagesRepository {
   ): Promise<{ messages: Message[]; hasMore: boolean }> {
     const sorted = this.messages
       .filter((m) => m.conversationId === conversationId)
-      .sort((a, b) => {
-        if (a.sentAt !== b.sentAt) {
-          return a.sentAt < b.sentAt ? 1 : -1;
-        }
-        return a.id < b.id ? 1 : -1;
-      });
+      .reverse();
 
-    let start = 0;
-    if (options.cursor) {
-      const cursor = decodeMessageCursor(options.cursor);
-      if (!cursor) {
-        return Promise.resolve({ messages: [], hasMore: false });
-      }
-      const after = sorted.findIndex(
-        (m) =>
-          m.sentAt < cursor.sentAt ||
-          (m.sentAt === cursor.sentAt && m.id < cursor.id),
-      );
-      start = after === -1 ? sorted.length : after;
-    }
+    const start = options.cursor
+      ? sorted.findIndex((m) => m.id === options.cursor) + 1
+      : 0;
 
     const slice = sorted.slice(start, start + options.limit + 1);
     const hasMore = slice.length > options.limit;
     const page = hasMore ? slice.slice(0, options.limit) : slice;
     return Promise.resolve({ messages: page, hasMore });
+  }
+
+  findRecentChronological(
+    conversationId: string,
+    limit: number,
+  ): Promise<Message[]> {
+    const history = this.messages.filter(
+      (m) => m.conversationId === conversationId,
+    );
+    return Promise.resolve(history.slice(-limit));
+  }
+
+  findRecentByUser(userId: UserId, limit: number): Promise<Message[]> {
+    const authored = this.messages.filter((m) => m.senderId === userId);
+    return Promise.resolve(authored.slice(-limit));
   }
 
   create(

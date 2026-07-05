@@ -4,7 +4,6 @@ import { Connection, Types } from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { MessagesRepository } from '../messages.repository';
 import { MongoMessagesRepository } from './mongo-messages.repository';
-import { encodeMessageCursor } from '../message-cursor';
 import { MessageSchema } from './message.schema';
 
 const conversationA = new Types.ObjectId().toString();
@@ -46,6 +45,7 @@ describe('MongoMessagesRepository (integration)', () => {
   it('persists a message and reads it back with a Mongo-generated string id', async () => {
     const created = await repo.create({
       conversationId: conversationA,
+      role: 'user',
       senderId,
       sentAt: new Date().toISOString(),
       content: 'hello',
@@ -62,12 +62,14 @@ describe('MongoMessagesRepository (integration)', () => {
   it('isolates messages by conversation', async () => {
     await repo.create({
       conversationId: conversationA,
+      role: 'user',
       senderId,
       sentAt: new Date().toISOString(),
       content: 'one',
     });
     await repo.create({
       conversationId: conversationB,
+      role: 'user',
       senderId,
       sentAt: new Date().toISOString(),
       content: 'two',
@@ -83,6 +85,7 @@ describe('MongoMessagesRepository (integration)', () => {
 
     const created = await repo.create({
       conversationId: conversationA,
+      role: 'user',
       senderId,
       sentAt,
       content: 'x',
@@ -111,6 +114,7 @@ describe('MongoMessagesRepository (integration)', () => {
     for (let i = 0; i < 105; i++) {
       await repo.create({
         conversationId: conversationA,
+        role: 'user',
         senderId,
         sentAt: new Date(Date.now() + i).toISOString(),
         content: `m${i}`,
@@ -131,8 +135,7 @@ describe('MongoMessagesRepository (integration)', () => {
       if (!hasMore) {
         break;
       }
-      const last = messages[messages.length - 1];
-      cursor = encodeMessageCursor({ sentAt: last.sentAt, id: last.id });
+      cursor = messages[messages.length - 1].id;
     }
 
     expect(seen).toHaveLength(105);

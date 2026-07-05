@@ -12,6 +12,7 @@ const seedConversations: ReadonlyArray<Conversation> = [
   {
     id: "c1",
     title: "Frontend Support",
+    type: "assistant",
     lastMessageSnippet: "There it is. Stabilize that and you're good.",
     lastMessageAt: "2026-05-26T10:00:00.000Z",
     userId: "me",
@@ -19,6 +20,7 @@ const seedConversations: ReadonlyArray<Conversation> = [
   {
     id: "c2",
     title: "Project Chat",
+    type: "assistant",
     lastMessageSnippet: "Let's ship the MVP this week.",
     lastMessageAt: "2026-05-25T18:30:00.000Z",
     userId: "me",

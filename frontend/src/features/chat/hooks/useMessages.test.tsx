@@ -59,7 +59,7 @@ describe("useMessages", () => {
     expect(result.current.thread.messages).toEqual([]);
   });
 
-  it("optimistically appends a temp message and replaces it with the server response on success", async () => {
+  it("appends the user message plus an assistant bubble, then streams the reply in", async () => {
     const result = await renderAndLoad("c1");
     const initialCount = result.current.thread.messages.length;
 
@@ -69,9 +69,9 @@ describe("useMessages", () => {
     });
 
     expect(result.current.thread.messages).toHaveLength(initialCount + 1);
-    const tempMessage = result.current.thread.messages.at(-1)!;
-    expect(tempMessage.content).toBe("hello world");
-    expect(tempMessage.id).toMatch(/^temp-/);
+    const userMessage = result.current.thread.messages.at(-1)!;
+    expect(userMessage.content).toBe("hello world");
+    expect(userMessage.id).toMatch(/^temp-/);
     expect(result.current.thread.isSending).toBe(true);
 
     await act(async () => {
@@ -79,14 +79,15 @@ describe("useMessages", () => {
     });
 
     expect(result.current.thread.isSending).toBe(false);
-    expect(result.current.thread.messages).toHaveLength(initialCount + 1);
-    const finalMessage = result.current.thread.messages.at(-1)!;
-    expect(finalMessage.content).toBe("hello world");
-    expect(finalMessage.id).not.toMatch(/^temp-/);
+    expect(result.current.thread.messages).toHaveLength(initialCount + 2);
+    const assistantMessage = result.current.thread.messages.at(-1)!;
+    expect(assistantMessage.content).toBe("Hi there!");
+    expect(assistantMessage.senderId).toBeNull();
+    expect(assistantMessage.id).not.toMatch(/^assistant-temp-/);
     expect(result.current.thread.sendError).toBeNull();
   });
 
-  it("rolls back the optimistic message and sets sendError when the server returns an error", async () => {
+  it("rolls back the optimistic messages and sets sendError when the stream fails", async () => {
     const result = await renderAndLoad("c1");
     const initialCount = result.current.thread.messages.length;
 

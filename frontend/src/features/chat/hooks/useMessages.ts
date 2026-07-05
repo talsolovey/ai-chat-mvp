@@ -81,47 +81,84 @@ export function useMessages(
         return false;
       }
 
-      const trimmed = content.trim();
+      const trimmedContent = content.trim();
+      const nowIso = new Date().toISOString();
 
-      const request: SendMessageRequest = {
-        content: trimmed,
-      };
-
-      const tempMessage: Message = {
-        id: `temp-${crypto.randomUUID()}`,
+      const userMessageTempId = `temp-${crypto.randomUUID()}`;
+      const optimisticUserMessage: Message = {
+        id: userMessageTempId,
         conversationId,
         senderId: currentUserId,
-        sentAt: new Date().toISOString(),
-        content: trimmed,
+        sentAt: nowIso,
+        content: trimmedContent,
+      };
+      dispatch({ type: "send/optimistic", payload: optimisticUserMessage });
+
+      const assistantMessageTempId = `assistant-temp-${crypto.randomUUID()}`;
+      const assistantPlaceholderMessage: Message = {
+        id: assistantMessageTempId,
+        conversationId,
+        senderId: null,
+        sentAt: nowIso,
+        content: "",
       };
 
-      dispatch({ type: "send/optimistic", payload: tempMessage });
+      const sendMessageRequest: SendMessageRequest = {
+        content: trimmedContent,
+      };
+      let streamFailed = false;
+      let assistantBubbleStarted = false;
 
-      try {
-        const serverMessage = await messagesApi.sendMessage(
-          conversationId,
-          request,
-        );
-        if (activeConversationIdRef.current !== conversationId) {
-          return true;
-        }
-        dispatch({
-          type: "send/success",
-          payload: serverMessage,
-          tempId: tempMessage.id,
-        });
-        return true;
-      } catch (err: unknown) {
-        if (activeConversationIdRef.current !== conversationId) {
-          return false;
-        }
-        dispatch({
-          type: "send/error",
-          payload: err instanceof Error ? err : new Error(String(err)),
-          tempId: tempMessage.id,
-        });
-        return false;
-      }
+      await messagesApi.streamAssistantMessage(
+        conversationId,
+        sendMessageRequest,
+        {
+          onToken: (tokenText) => {
+            if (activeConversationIdRef.current !== conversationId) {
+              return;
+            }
+            if (!assistantBubbleStarted) {
+              assistantBubbleStarted = true;
+              dispatch({
+                type: "assistant/start",
+                payload: {
+                  ...assistantPlaceholderMessage,
+                  content: tokenText,
+                },
+              });
+              return;
+            }
+            dispatch({
+              type: "assistant/token",
+              payload: { id: assistantMessageTempId, text: tokenText },
+            });
+          },
+          onDone: (completedMessage) => {
+            if (activeConversationIdRef.current !== conversationId) {
+              return;
+            }
+            dispatch({
+              type: "assistant/done",
+              tempId: assistantMessageTempId,
+              payload: completedMessage,
+            });
+          },
+          onError: (errorMessage) => {
+            streamFailed = true;
+            if (activeConversationIdRef.current !== conversationId) {
+              return;
+            }
+            dispatch({
+              type: "assistant/error",
+              payload: new Error(errorMessage),
+              userTempId: userMessageTempId,
+              assistantTempId: assistantMessageTempId,
+            });
+          },
+        },
+      );
+
+      return !streamFailed;
     },
     [conversationId, currentUserId],
   );

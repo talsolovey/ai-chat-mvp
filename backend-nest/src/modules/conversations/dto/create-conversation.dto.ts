@@ -1,5 +1,6 @@
 import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import type { ConversationType } from '../conversations.entity';
 
 export class CreateConversationDto {
   @IsString()
@@ -8,4 +9,8 @@ export class CreateConversationDto {
   )
   @IsNotEmpty({ message: 'title is required' })
   title!: string;
+
+  @IsOptional()
+  @IsIn(['chat', 'assistant'])
+  type: ConversationType = 'chat';
 }

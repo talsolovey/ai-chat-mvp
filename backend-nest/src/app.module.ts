@@ -8,7 +8,9 @@ import { CommonModule } from './common/common.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { validate } from './config/env.validation';
 import jwtConfig from './config/jwt.config';
+import llmConfig from './config/llm.config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { LlmModule } from './modules/llm/llm.module';
 
 @Module({
   imports: [
@@ -19,7 +21,7 @@ import { MongooseModule } from '@nestjs/mongoose';
     ConfigModule.forRoot({
       isGlobal: true,
       validate,
-      load: [jwtConfig],
+      load: [jwtConfig, llmConfig],
     }),
     MongooseModule.forRootAsync({
       inject: [ConfigService],
@@ -28,6 +30,7 @@ import { MongooseModule } from '@nestjs/mongoose';
       }),
     }),
     AuthModule,
+    LlmModule,
   ],
   controllers: [AppController],
 })

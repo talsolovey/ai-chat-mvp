@@ -11,6 +11,7 @@ const sampleConversations: Conversation[] = [
   {
     id: "c1",
     title: "Frontend Support",
+    type: "assistant",
     lastMessageSnippet: "Sure, I can help with that.",
     lastMessageAt: "2026-05-26T10:00:00.000Z",
     userId: "me",
@@ -18,6 +19,7 @@ const sampleConversations: Conversation[] = [
   {
     id: "c2",
     title: "Project Chat",
+    type: "assistant",
     lastMessageSnippet: "Let's ship the MVP this week.",
     lastMessageAt: "2026-05-25T18:30:00.000Z",
     userId: "me",

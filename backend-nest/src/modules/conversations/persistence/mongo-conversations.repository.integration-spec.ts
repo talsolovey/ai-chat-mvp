@@ -49,6 +49,7 @@ describe('MongoConversationsRepository (integration)', () => {
   it('creates a conversation with a Mongo-generated id and reads it back', async () => {
     const created = await repo.create({
       title: 'Hi',
+      type: 'chat',
       lastMessageSnippet: '',
       lastMessageAt: new Date().toISOString(),
       userId: userA,
@@ -63,12 +64,14 @@ describe('MongoConversationsRepository (integration)', () => {
   it('lists only conversations the user owns', async () => {
     await repo.create({
       title: 'Mine',
+      type: 'chat',
       lastMessageSnippet: '',
       lastMessageAt: new Date().toISOString(),
       userId: userA,
     });
     await repo.create({
       title: 'Theirs',
+      type: 'chat',
       lastMessageSnippet: '',
       lastMessageAt: new Date().toISOString(),
       userId: userB,
@@ -82,6 +85,7 @@ describe('MongoConversationsRepository (integration)', () => {
   it('updates the last message snippet and timestamp', async () => {
     const created = await repo.create({
       title: 'Hi',
+      type: 'chat',
       lastMessageSnippet: '',
       lastMessageAt: new Date().toISOString(),
       userId: userA,

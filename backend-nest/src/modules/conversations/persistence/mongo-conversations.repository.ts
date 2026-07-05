@@ -5,7 +5,10 @@ import { Conversation } from '../conversations.entity';
 import { ConversationsRepository } from '../conversations.repository';
 import { UserId } from '../../users/user.entity';
 import { TransactionContext } from '../../../common/persistence/transaction-runner';
-import { ConversationDocument } from './conversation.schema';
+import {
+  ConversationDocument,
+  ConversationHydratedDocument,
+} from './conversation.schema';
 
 @Injectable()
 export class MongoConversationsRepository extends ConversationsRepository {
@@ -20,13 +23,8 @@ export class MongoConversationsRepository extends ConversationsRepository {
     if (!Types.ObjectId.isValid(id)) {
       return undefined;
     }
-    const conversationDoc = await this.conversationModel
-      .findById(id)
-      .lean()
-      .exec();
-    return conversationDoc
-      ? this.toConversationEntity(conversationDoc)
-      : undefined;
+    const doc = await this.conversationModel.findById(id).exec();
+    return doc ? this.toEntity(doc) : undefined;
   }
 
   async findByUser(userId: UserId): Promise<Conversation[]> {
@@ -36,22 +34,19 @@ export class MongoConversationsRepository extends ConversationsRepository {
     const docs = await this.conversationModel
       .find({ userId })
       .sort({ lastMessageAt: -1 })
-      .lean()
       .exec();
-    return docs.map((conversationDoc) =>
-      this.toConversationEntity(conversationDoc),
-    );
+    return docs.map((doc) => this.toEntity(doc));
   }
 
-  create(input: Omit<Conversation, 'id'>): Promise<Conversation> {
-    return this.conversationModel
-      .create({
-        title: input.title,
-        lastMessageSnippet: input.lastMessageSnippet,
-        lastMessageAt: new Date(input.lastMessageAt),
-        userId: input.userId,
-      })
-      .then((conversationDoc) => this.toConversationEntity(conversationDoc));
+  async create(input: Omit<Conversation, 'id'>): Promise<Conversation> {
+    const doc = await this.conversationModel.create({
+      title: input.title,
+      type: input.type,
+      lastMessageSnippet: input.lastMessageSnippet,
+      lastMessageAt: new Date(input.lastMessageAt),
+      userId: input.userId,
+    });
+    return this.toEntity(doc);
   }
 
   async updateLastMessage(
@@ -73,15 +68,14 @@ export class MongoConversationsRepository extends ConversationsRepository {
       .exec();
   }
 
-  private toConversationEntity(
-    conversationDoc: ConversationDocument & { _id: Types.ObjectId },
-  ): Conversation {
+  private toEntity(doc: ConversationHydratedDocument): Conversation {
     return {
-      id: String(conversationDoc._id),
-      title: conversationDoc.title,
-      lastMessageSnippet: conversationDoc.lastMessageSnippet,
-      lastMessageAt: conversationDoc.lastMessageAt.toISOString(),
-      userId: conversationDoc.userId.toString(),
+      id: String(doc._id),
+      title: doc.title,
+      type: doc.type,
+      lastMessageSnippet: doc.lastMessageSnippet,
+      lastMessageAt: doc.lastMessageAt.toISOString(),
+      userId: doc.userId.toString(),
     };
   }
 }
