@@ -37,7 +37,7 @@ export class PostMessageUseCase {
       content,
     );
 
-    if (ownedConversation.type !== 'assistant') {
+    if (ownedConversation.type === 'chat') {
       return { type: 'chat', message: persistedUserMessage };
     }
 
@@ -46,6 +46,7 @@ export class PostMessageUseCase {
       stream: this.streamReplyUseCase.execute(
         conversationId,
         authenticatedUserId,
+        ownedConversation.type,
       ),
     };
   }

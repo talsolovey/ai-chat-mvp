@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Message } from './messages.entity';
+import { Citation } from '../knowledge/knowledge.entity';
 import { UserId } from '../users/user.entity';
 import { DEFAULT_PAGE_SIZE } from './dto/get-messages-query.dto';
 import { MessagesRepository } from './messages.repository';
@@ -28,7 +29,7 @@ export class MessagesService {
     return { messages, nextCursor };
   }
 
-  async createUserMessage(
+  createUserMessage(
     conversationId: string,
     userId: UserId,
     content: string,
@@ -46,10 +47,11 @@ export class MessagesService {
     );
   }
 
-  async createAssistantMessage(
+  createAssistantMessage(
     conversationId: string,
     content: string,
     tx?: TransactionContext,
+    citations?: Citation[],
   ): Promise<Message> {
     return this.repo.create(
       {
@@ -58,19 +60,17 @@ export class MessagesService {
         senderId: null,
         sentAt: new Date().toISOString(),
         content,
+        ...(citations?.length ? { citations } : {}),
       },
       tx,
     );
   }
 
-  async getRecentHistory(
-    conversationId: string,
-    limit: number,
-  ): Promise<Message[]> {
+  getRecentHistory(conversationId: string, limit: number): Promise<Message[]> {
     return this.repo.findRecentChronological(conversationId, limit);
   }
 
-  async getRecentByUser(userId: UserId, limit: number): Promise<Message[]> {
+  getRecentByUser(userId: UserId, limit: number): Promise<Message[]> {
     return this.repo.findRecentByUser(userId, limit);
   }
 }

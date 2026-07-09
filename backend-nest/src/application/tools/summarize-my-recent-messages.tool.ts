@@ -31,9 +31,7 @@ export function createSummarizeMyRecentMessagesTool(
       "Fetch the current user's most recent messages (newest last) so they " +
       'can be summarized. Use when the user asks for a recap or summary of ' +
       'what they have recently said.',
-    inputJsonSchema: z.toJSONSchema(
-      SummarizeRecentMessagesInputSchema,
-    ) as Record<string, unknown>,
+    inputJsonSchema: z.toJSONSchema(SummarizeRecentMessagesInputSchema),
     async run(rawToolInput: unknown): Promise<unknown> {
       const { limit: requestedMessageLimit } =
         SummarizeRecentMessagesInputSchema.parse(rawToolInput);

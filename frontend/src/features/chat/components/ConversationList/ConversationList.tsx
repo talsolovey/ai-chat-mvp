@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type ReactElement } from "react";
-import type { Conversation } from "../../types";
+import type { Conversation, ConversationType } from "../../types";
 import Skeleton from "../../../../components/Skeleton";
 import { formatRelativeTime } from "../../../../lib/formatTime";
 import styles from "./ConversationList.module.css";
@@ -8,7 +8,7 @@ type ConversationListProps = {
   conversations: Conversation[];
   selectedConversationId: string | null;
   onSelectConversation: (id: string) => void;
-  onCreateConversation: (title: string) => void;
+  onCreateConversation: (title: string, type: ConversationType) => void;
   conversationsLoading: boolean;
   conversationsError: Error | null;
 };
@@ -22,6 +22,7 @@ export default function ConversationList({
   conversationsError,
 }: ConversationListProps): ReactElement {
   const [newTitle, setNewTitle] = useState("");
+  const [newType, setNewType] = useState<ConversationType>("chat");
 
   function handleCreate(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -29,7 +30,7 @@ export default function ConversationList({
     if (!title) {
       return;
     }
-    onCreateConversation(title);
+    onCreateConversation(title, newType);
     setNewTitle("");
   }
 
@@ -43,10 +44,24 @@ export default function ConversationList({
             className={styles.newInput}
             type="text"
             value={newTitle}
-            onChange={(e): void => setNewTitle(e.target.value)}
+            onChange={(changeEvent): void =>
+              setNewTitle(changeEvent.target.value)
+            }
             placeholder="New conversation title"
             aria-label="New conversation title"
           />
+          <select
+            className={styles.newTypeSelect}
+            value={newType}
+            onChange={(changeEvent): void =>
+              setNewType(changeEvent.target.value as ConversationType)
+            }
+            aria-label="Conversation type"
+          >
+            <option value="chat">Chat</option>
+            <option value="assistant">Assistant</option>
+            <option value="tutor">Tutor</option>
+          </select>
           <button
             type="submit"
             className={styles.newButton}
@@ -99,7 +114,14 @@ export default function ConversationList({
                   aria-pressed={isSelected}
                 >
                   <div className={styles.itemHeader}>
-                    <div className={styles.itemTitle}>{conversation.title}</div>
+                    <div className={styles.itemTitle}>
+                      {conversation.title}
+                      {conversation.type !== "chat" && (
+                        <span className={styles.itemTypeBadge}>
+                          {conversation.type}
+                        </span>
+                      )}
+                    </div>
                     <time
                       className={styles.itemTime}
                       dateTime={conversation.lastMessageAt}

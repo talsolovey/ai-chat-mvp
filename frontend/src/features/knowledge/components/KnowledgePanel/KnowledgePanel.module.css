@@ -1,0 +1,82 @@
+.root {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+.heading {
+  margin: 0 0 2px;
+  font-size: 0.95rem;
+}
+
+.hint {
+  margin: 0 0 8px;
+  font-size: 0.75rem;
+  color: var(--text-muted, #667);
+}
+
+.uploadForm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.fileInput {
+  font-size: 0.8rem;
+}
+
+.uploadButton {
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+
+.error {
+  color: #c5443d;
+  font-size: 0.8rem;
+  margin: 4px 0;
+}
+
+.state {
+  font-size: 0.8rem;
+  color: var(--text-muted, #667);
+  margin: 4px 0;
+}
+
+.documentList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.documentItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+}
+
+.documentName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.documentMeta {
+  color: var(--text-muted, #667);
+  font-size: 0.7rem;
+  flex-shrink: 0;
+}
+
+.deleteButton {
+  padding: 0 6px;
+  font-size: 0.75rem;
+  background: none;
+  border: 1px solid var(--border, #ccc);
+  cursor: pointer;
+  flex-shrink: 0;
+}

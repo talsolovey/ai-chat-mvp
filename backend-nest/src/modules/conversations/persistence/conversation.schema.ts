@@ -7,7 +7,7 @@ export class ConversationDocument {
   @Prop({ required: true })
   title!: string;
 
-  @Prop({ type: String, enum: ['chat', 'assistant'], default: 'chat' })
+  @Prop({ type: String, enum: ['chat', 'assistant', 'tutor'], default: 'chat' })
   type!: ConversationType;
 
   @Prop({ default: '' })

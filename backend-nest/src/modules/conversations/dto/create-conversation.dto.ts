@@ -11,6 +11,6 @@ export class CreateConversationDto {
   title!: string;
 
   @IsOptional()
-  @IsIn(['chat', 'assistant'])
+  @IsIn(['chat', 'assistant', 'tutor'])
   type: ConversationType = 'chat';
 }

@@ -7,9 +7,7 @@ export type LlmMessage = {
   content: string;
 };
 
-export type LlmStreamEvent =
-  | { type: 'token'; text: string }
-  | { type: 'done' };
+export type LlmStreamEvent = { type: 'token'; text: string } | { type: 'done' };
 
 export type AssistantReplyArgs = {
   systemPrompt: string;

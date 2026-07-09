@@ -51,7 +51,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
       res.status(HttpStatus.SERVICE_UNAVAILABLE).json({
         error: {
           code: 'SERVICE_UNAVAILABLE',
-          message: 'The service is temporarily unavailable. Please try again shortly.',
+          message:
+            'The service is temporarily unavailable. Please try again shortly.',
         },
       });
       return;

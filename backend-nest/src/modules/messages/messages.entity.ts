@@ -1,4 +1,5 @@
 import { UserId } from '../users/user.entity';
+import { Citation } from '../knowledge/knowledge.entity';
 
 export type SenderId = UserId;
 
@@ -11,4 +12,5 @@ export type Message = {
   senderId: SenderId | null;
   sentAt: string;
   content: string;
+  citations?: Citation[];
 };

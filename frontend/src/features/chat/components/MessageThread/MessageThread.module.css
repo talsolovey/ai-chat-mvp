@@ -89,3 +89,31 @@
   color: #c5443d;
   font-size: 0.9rem;
 }
+
+.citationList {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 6px 0 0;
+  border-top: 1px solid var(--bubble-incoming-border, #ddd);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.citation {
+  font-size: 0.78rem;
+}
+
+.citationSummary {
+  cursor: pointer;
+  color: var(--text-muted, #667);
+}
+
+.citationText {
+  margin: 4px 0 0;
+  padding: 6px 8px;
+  border-left: 3px solid var(--bubble-incoming-border, #ccc);
+  background: rgba(0, 0, 0, 0.04);
+  white-space: pre-wrap;
+  font-size: 0.75rem;
+}

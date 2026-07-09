@@ -1,0 +1,62 @@
+[
+  {
+    "question": "What does photosynthesis convert light energy into?",
+    "expectedSource": "photosynthesis.md",
+    "expectedAnswerContains": ["chemical energy", "glucose"]
+  },
+  {
+    "question": "Where inside the cell does photosynthesis take place?",
+    "expectedSource": "photosynthesis.md",
+    "expectedAnswerContains": ["chloroplast"]
+  },
+  {
+    "question": "Why do leaves look green?",
+    "expectedSource": "photosynthesis.md",
+    "expectedAnswerContains": ["green", "reflect"]
+  },
+  {
+    "question": "What is the Calvin cycle responsible for?",
+    "expectedSource": "photosynthesis.md",
+    "expectedAnswerContains": ["carbon dioxide", "glucose"]
+  },
+  {
+    "question": "What does it mean that HTTP is stateless?",
+    "expectedSource": "http.md",
+    "expectedAnswerContains": ["each request", "independent"]
+  },
+  {
+    "question": "What does a 404 status code mean?",
+    "expectedSource": "http.md",
+    "expectedAnswerContains": ["not found"]
+  },
+  {
+    "question": "Which HTTP method should be used to create a resource?",
+    "expectedSource": "http.md",
+    "expectedAnswerContains": ["POST"]
+  },
+  {
+    "question": "How do web apps remember a user across requests if HTTP is stateless?",
+    "expectedSource": "http.md",
+    "expectedAnswerContains": ["cookie", "token"]
+  },
+  {
+    "question": "How does MongoDB store data?",
+    "expectedSource": "mongodb.md",
+    "expectedAnswerContains": ["document", "BSON"]
+  },
+  {
+    "question": "What are collections in MongoDB?",
+    "expectedSource": "mongodb.md",
+    "expectedAnswerContains": ["group", "document"]
+  },
+  {
+    "question": "What is the purpose of an index in MongoDB?",
+    "expectedSource": "mongodb.md",
+    "expectedAnswerContains": ["query", "performance"]
+  },
+  {
+    "question": "What does Atlas Vector Search let you do?",
+    "expectedSource": "mongodb.md",
+    "expectedAnswerContains": ["similarity search", "embedding"]
+  }
+]

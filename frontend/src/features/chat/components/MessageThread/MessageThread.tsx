@@ -138,6 +138,25 @@ export default function MessageThread({
                     <span className={styles.messageContent}>
                       {message.content}
                     </span>
+                    {!!message.citations?.length && (
+                      <ul
+                        className={styles.citationList}
+                        aria-label="Sources"
+                      >
+                        {message.citations.map((citation) => (
+                          <li key={citation.chunkId}>
+                            <details className={styles.citation}>
+                              <summary className={styles.citationSummary}>
+                                {citation.documentName}
+                              </summary>
+                              <blockquote className={styles.citationText}>
+                                {citation.chunkText}
+                              </blockquote>
+                            </details>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                     <time
                       className={styles.messageTime}
                       dateTime={message.sentAt}

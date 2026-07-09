@@ -8,7 +8,18 @@ import type {
   GetMessagesResponse,
   SendMessageRequest,
   AssistantStreamEvent,
+  Citation,
 } from "./types";
+
+function isCitation(value: unknown): value is Citation {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const candidate = value as Record<string, unknown>;
+  return ["chunkId", "documentId", "documentName", "chunkText"].every(
+    (citationField) => typeof candidate[citationField] === "string",
+  );
+}
 
 function parseAssistantStreamEvent(
   rawPayload: string,
@@ -49,6 +60,13 @@ function parseAssistantStreamEvent(
   ) {
     return { type: "error", message: candidateEvent.message };
   }
+  if (
+    candidateEvent.type === "citations" &&
+    Array.isArray(candidateEvent.citations) &&
+    candidateEvent.citations.every(isCitation)
+  ) {
+    return { type: "citations", citations: candidateEvent.citations };
+  }
   return null;
 }
 
@@ -74,6 +92,7 @@ export function getMessages(
 
 export type AssistantStreamHandlers = {
   onToken: (tokenText: string) => void;
+  onCitations: (citations: Citation[]) => void;
   onDone: (completedMessage: { messageId: string; sentAt: string }) => void;
   onError?: (errorMessage: string) => void;
 };
@@ -167,6 +186,8 @@ function parseAndDispatchServerSentEventFrame(
 
   if (streamEvent.type === "token") {
     streamHandlers.onToken(streamEvent.text);
+  } else if (streamEvent.type === "citations") {
+    streamHandlers.onCitations(streamEvent.citations);
   } else if (streamEvent.type === "done") {
     streamHandlers.onDone({
       messageId: streamEvent.messageId,
