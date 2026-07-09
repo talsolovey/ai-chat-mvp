@@ -2,10 +2,11 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
+import { HumanMessage } from '@langchain/core/messages';
 import { TutorEvalModule } from './tutor-eval.module';
 import { KnowledgeService } from '../../src/modules/knowledge/knowledge.service';
-import { RetrievedChunk } from '../../src/modules/knowledge/knowledge.entity';
-import { TutorRagChain } from '../../src/modules/llm/tutor-rag.chain';
+import { AGENT_GRAPH } from '../../src/modules/agent/agent.module';
+import type { AgentGraph } from '../../src/modules/agent/agent.graph';
 
 type QaPair = {
   question: string;
@@ -15,22 +16,6 @@ type QaPair = {
 
 const EVAL_USER_ID = '00000000000000000000e7a1';
 const CORPUS_DIRECTORY = join(__dirname, 'corpus');
-
-async function collectAnswer(
-  tutorRagChain: TutorRagChain,
-  question: string,
-  retrievedChunks: RetrievedChunk[],
-): Promise<string> {
-  let answer = '';
-  for await (const token of tutorRagChain.streamGroundedAnswer({
-    question,
-    retrievedChunks,
-    history: [],
-  })) {
-    answer += token;
-  }
-  return answer;
-}
 
 async function runTutorEval(): Promise<void> {
   if (!process.env.OPENAI_API_KEY || !process.env.MONGO_URI) {
@@ -52,7 +37,7 @@ async function runTutorEval(): Promise<void> {
 
   try {
     const knowledgeService = applicationContext.get(KnowledgeService);
-    const tutorRagChain = applicationContext.get(TutorRagChain);
+    const agentGraph = applicationContext.get<AgentGraph>(AGENT_GRAPH);
 
     for (const existingDocument of await knowledgeService.listDocuments(
       EVAL_USER_ID,
@@ -65,26 +50,29 @@ async function runTutorEval(): Promise<void> {
     }
     await new Promise((resolve) => setTimeout(resolve, 3000));
 
+    const evalRunId = Date.now();
     let retrievalHits = 0;
     let answerHits = 0;
 
-    for (const qaPair of qaPairs) {
-      const retrievedChunks = await knowledgeService.retrieveRelevantChunks(
-        EVAL_USER_ID,
-        qaPair.question,
+    for (const [qaPairIndex, qaPair] of qaPairs.entries()) {
+      const threadId = `tutor-eval-${evalRunId}-${qaPairIndex}`;
+      const result = await agentGraph.invoke(
+        {
+          messages: [new HumanMessage(qaPair.question)],
+          conversationId: threadId,
+          conversationType: 'tutor',
+        },
+        { configurable: { thread_id: threadId, userId: EVAL_USER_ID } },
       );
-      const retrievedTheExpectedSource = retrievedChunks.some(
-        (chunk) => chunk.documentName === qaPair.expectedSource,
+
+      const retrievedTheExpectedSource = result.citations.some(
+        (citation) => citation.documentName === qaPair.expectedSource,
       );
       if (retrievedTheExpectedSource) {
         retrievalHits++;
       }
 
-      const answer = await collectAnswer(
-        tutorRagChain,
-        qaPair.question,
-        retrievedChunks,
-      );
+      const answer = result.messages.at(-1)?.text ?? '';
       const lowerCaseAnswer = answer.toLowerCase();
       const answerCoveredExpectedFacts = qaPair.expectedAnswerContains.every(
         (expectedFact) => lowerCaseAnswer.includes(expectedFact.toLowerCase()),
