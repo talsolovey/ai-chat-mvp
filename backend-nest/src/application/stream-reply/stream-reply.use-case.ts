@@ -1,36 +1,41 @@
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import {
+  AIMessage,
+  HumanMessage,
+  isAIMessage,
+  type AIMessageChunk,
+  type BaseMessage,
+} from '@langchain/core/messages';
+import type { RunnableConfig } from '@langchain/core/runnables';
 import { ConversationsService } from '../../modules/conversations/conversations.service';
 import { ConversationType } from '../../modules/conversations/conversations.entity';
 import { MessagesService } from '../../modules/messages/messages.service';
 import { UserId } from '../../modules/users/user.entity';
-import { LlmMessage, LlmProvider } from '../../modules/llm/llm-provider';
-import { TutorRagChain } from '../../modules/llm/tutor-rag.chain';
-import { KnowledgeService } from '../../modules/knowledge/knowledge.service';
-import { Citation, toCitation } from '../../modules/knowledge/knowledge.entity';
+import { Citation } from '../../modules/knowledge/knowledge.entity';
 import { TransactionRunner } from '../../common/persistence/transaction-runner';
-import {
-  ASSISTANT_SYSTEM_PROMPT,
-  ASSISTANT_HISTORY_MESSAGE_LIMIT,
-} from '../../modules/llm/prompts/assistant.prompt';
-import {
-  TUTOR_HISTORY_MESSAGE_LIMIT,
-  TUTOR_NO_CONTEXT_REPLY,
-} from '../../modules/llm/prompts/tutor.prompt';
-import { createSummarizeMyRecentMessagesTool } from '../tools/summarize-my-recent-messages.tool';
+import { AGENT_GRAPH } from '../../modules/agent/agent.module';
+import type { AgentGraph } from '../../modules/agent/agent.graph';
+import type { AgentStateType } from '../../modules/agent/agent.state';
+
+const THREAD_SEED_MESSAGE_LIMIT = 20;
 
 export type StreamReplyEvent =
   | { type: 'token'; text: string }
+  | { type: 'tool_call'; name: string }
+  | { type: 'tool_result'; name: string }
   | { type: 'citations'; citations: Citation[] }
   | { type: 'done'; messageId: string; sentAt: string };
 
 @Injectable()
 export class StreamReplyUseCase {
   constructor(
+    @Inject(AGENT_GRAPH) private readonly agentGraph: AgentGraph,
     private readonly conversationsService: ConversationsService,
     private readonly messagesService: MessagesService,
-    private readonly llmProvider: LlmProvider,
-    private readonly tutorRagChain: TutorRagChain,
-    private readonly knowledgeService: KnowledgeService,
     private readonly transactionRunner: TransactionRunner,
   ) {}
 
@@ -39,109 +44,108 @@ export class StreamReplyUseCase {
     authenticatedUserId: UserId,
     conversationType: Extract<ConversationType, 'assistant' | 'tutor'>,
   ): AsyncGenerator<StreamReplyEvent> {
-    yield* conversationType === 'tutor'
-      ? this.streamTutorReply(conversationId, authenticatedUserId)
-      : this.streamAssistantReply(conversationId, authenticatedUserId);
-  }
+    const runConfig: RunnableConfig = {
+      configurable: { thread_id: conversationId, userId: authenticatedUserId },
+    };
 
-  private async *streamAssistantReply(
-    conversationId: string,
-    authenticatedUserId: UserId,
-  ): AsyncGenerator<StreamReplyEvent> {
-    const recentMessageHistory = await this.messagesService.getRecentHistory(
+    const graphInputMessages = await this.buildGraphInputMessages(
       conversationId,
-      ASSISTANT_HISTORY_MESSAGE_LIMIT,
+      runConfig,
     );
 
-    const conversationHistoryForModel: LlmMessage[] = recentMessageHistory.map(
-      (message) => ({
-        role: message.role,
-        content: message.content,
-      }),
+    let streamedAnyToken = false;
+    const graphEventStream = this.agentGraph.streamEvents(
+      {
+        messages: graphInputMessages,
+        conversationId,
+        conversationType,
+      },
+      { ...runConfig, version: 'v2' as const },
     );
-
-    const userScopedTools = [
-      createSummarizeMyRecentMessagesTool(
-        { messagesService: this.messagesService },
-        authenticatedUserId,
-      ),
-    ];
-
-    let accumulatedReplyText = '';
-    for await (const streamEvent of this.llmProvider.streamAssistantReply({
-      systemPrompt: ASSISTANT_SYSTEM_PROMPT,
-      messages: conversationHistoryForModel,
-      tools: userScopedTools,
-    })) {
-      if (streamEvent.type === 'token') {
-        accumulatedReplyText += streamEvent.text;
-        yield { type: 'token', text: streamEvent.text };
+    for await (const graphEvent of graphEventStream) {
+      if (graphEvent.event === 'on_chat_model_stream') {
+        const tokenChunk = graphEvent.data.chunk as AIMessageChunk;
+        if (tokenChunk.text) {
+          streamedAnyToken = true;
+          yield { type: 'token', text: tokenChunk.text };
+        }
+      } else if (graphEvent.event === 'on_tool_start') {
+        yield { type: 'tool_call', name: graphEvent.name };
+      } else if (graphEvent.event === 'on_tool_end') {
+        yield { type: 'tool_result', name: graphEvent.name };
       }
     }
 
-    if (!accumulatedReplyText.trim()) {
+    const finalAgentState = await this.getAgentThreadState(runConfig);
+    const finalAgentMessage = finalAgentState.messages.at(-1);
+    // The streaming models yield an AIMessageChunk (not an AIMessage), so an
+    // `instanceof AIMessage` check silently drops the reply. isAIMessage()
+    // covers both, keying off the message type instead of the concrete class.
+    const assistantReplyText =
+      finalAgentMessage && isAIMessage(finalAgentMessage)
+        ? finalAgentMessage.text
+        : '';
+
+    if (!assistantReplyText.trim()) {
       throw new ServiceUnavailableException(
         'The assistant did not return a reply',
       );
     }
 
-    yield await this.persistReply(conversationId, accumulatedReplyText, []);
+    if (!streamedAnyToken) {
+      yield { type: 'token', text: assistantReplyText };
+    }
+
+    if (finalAgentState.citations.length > 0) {
+      yield { type: 'citations', citations: finalAgentState.citations };
+    }
+
+    yield await this.persistAssistantReply(
+      conversationId,
+      assistantReplyText,
+      finalAgentState.citations,
+    );
   }
 
-  private async *streamTutorReply(
+  private async getAgentThreadState(
+    runConfig: RunnableConfig,
+  ): Promise<AgentStateType> {
+    const threadStateSnapshot = await this.agentGraph.getState(runConfig);
+    return threadStateSnapshot.values as AgentStateType;
+  }
+
+  private async buildGraphInputMessages(
     conversationId: string,
-    authenticatedUserId: UserId,
-  ): AsyncGenerator<StreamReplyEvent> {
-    const recentMessageHistory = await this.messagesService.getRecentHistory(
+    runConfig: RunnableConfig,
+  ): Promise<BaseMessage[]> {
+    const recentPersistedHistory = await this.messagesService.getRecentHistory(
       conversationId,
-      TUTOR_HISTORY_MESSAGE_LIMIT,
+      THREAD_SEED_MESSAGE_LIMIT,
     );
-    const latestUserMessage = recentMessageHistory.at(-1);
-    if (!latestUserMessage || latestUserMessage.role !== 'user') {
+    const latestPersistedMessage = recentPersistedHistory.at(-1);
+    if (!latestPersistedMessage || latestPersistedMessage.role !== 'user') {
       throw new ServiceUnavailableException('No user question found to answer');
     }
 
-    const retrievedChunks = await this.knowledgeService.retrieveRelevantChunks(
-      authenticatedUserId,
-      latestUserMessage.content,
-    );
+    const agentThreadState = await this.getAgentThreadState(runConfig);
+    const agentThreadIsEmpty = (agentThreadState.messages?.length ?? 0) === 0;
 
-    if (retrievedChunks.length === 0) {
-      yield { type: 'token', text: TUTOR_NO_CONTEXT_REPLY };
-      yield await this.persistReply(conversationId, TUTOR_NO_CONTEXT_REPLY, []);
-      return;
-    }
+    const toLangChainMessage = (persistedMessage: {
+      role: string;
+      content: string;
+    }): BaseMessage =>
+      persistedMessage.role === 'user'
+        ? new HumanMessage(persistedMessage.content)
+        : new AIMessage(persistedMessage.content);
 
-    const priorConversationHistory: LlmMessage[] = recentMessageHistory
-      .slice(0, -1)
-      .map((message) => ({ role: message.role, content: message.content }));
-
-    let accumulatedReplyText = '';
-    for await (const token of this.tutorRagChain.streamGroundedAnswer({
-      question: latestUserMessage.content,
-      retrievedChunks,
-      history: priorConversationHistory,
-    })) {
-      accumulatedReplyText += token;
-      yield { type: 'token', text: token };
-    }
-
-    if (!accumulatedReplyText.trim()) {
-      throw new ServiceUnavailableException('The tutor did not return a reply');
-    }
-
-    const citations = retrievedChunks.map(toCitation);
-    yield { type: 'citations', citations };
-    yield await this.persistReply(
-      conversationId,
-      accumulatedReplyText,
-      citations,
-    );
+    return agentThreadIsEmpty
+      ? recentPersistedHistory.map(toLangChainMessage)
+      : [toLangChainMessage(latestPersistedMessage)];
   }
 
-  private async persistReply(
+  private async persistAssistantReply(
     conversationId: string,
-    replyText: string,
+    assistantReplyText: string,
     citations: Citation[],
   ): Promise<Extract<StreamReplyEvent, { type: 'done' }>> {
     const savedAssistantMessage = await this.transactionRunner.run(
@@ -149,14 +153,14 @@ export class StreamReplyUseCase {
         const persistedAssistantMessage =
           await this.messagesService.createAssistantMessage(
             conversationId,
-            replyText,
+            assistantReplyText,
             transaction,
             citations,
           );
 
         await this.conversationsService.updateLastMessage(
           conversationId,
-          replyText,
+          assistantReplyText,
           persistedAssistantMessage.sentAt,
           transaction,
         );
