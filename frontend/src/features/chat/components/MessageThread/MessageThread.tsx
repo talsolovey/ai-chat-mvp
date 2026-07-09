@@ -14,6 +14,11 @@ import styles from "./MessageThread.module.css";
 
 const LOAD_OLDER_THRESHOLD_PX = 48;
 
+const TOOL_PROGRESS_LABELS: Record<string, string> = {
+  search_documents: "Searching your documents…",
+  summarize_my_recent_messages: "Looking up your messages…",
+};
+
 type MessageThreadProps = {
   thread: MessageThreadState;
   selectedConversationId: string | null;
@@ -169,6 +174,17 @@ export default function MessageThread({
             </ul>
             <div ref={bottomRef} aria-hidden="true" />
           </>
+        )}
+
+        {thread.activeToolName != null && (
+          <p
+            data-testid="tool-progress"
+            className={styles.toolProgress}
+            role="status"
+          >
+            {TOOL_PROGRESS_LABELS[thread.activeToolName] ??
+              `Using ${thread.activeToolName}…`}
+          </p>
         )}
       </div>
 

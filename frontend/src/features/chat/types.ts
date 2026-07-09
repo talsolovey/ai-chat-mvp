@@ -34,6 +34,8 @@ export type CreateConversationRequest = {
 
 export type AssistantStreamEvent =
   | { type: "token"; text: string }
+  | { type: "tool_call"; name: string }
+  | { type: "tool_result"; name: string }
   | { type: "citations"; citations: Citation[] }
   | { type: "done"; messageId: string; sentAt: string }
   | { type: "error"; message: string };

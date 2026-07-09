@@ -8,6 +8,7 @@ export type MessageThreadState = {
   sendError: Error | null;
   nextCursor: string | null;
   isLoadingOlder: boolean;
+  activeToolName: string | null;
 };
 
 type Page = { messages: Message[]; nextCursor: string | null };
@@ -22,6 +23,8 @@ export type MessageThreadAction =
   | { type: "send/optimistic"; payload: Message }
   | { type: "assistant/start"; payload: Message }
   | { type: "assistant/token"; payload: { id: string; text: string } }
+  | { type: "assistant/toolCall"; payload: { toolName: string } }
+  | { type: "assistant/toolResult" }
   | {
       type: "assistant/citations";
       payload: { id: string; citations: Citation[] };
@@ -47,6 +50,7 @@ export const initialMessageThreadState: MessageThreadState = {
   sendError: null,
   nextCursor: null,
   isLoadingOlder: false,
+  activeToolName: null,
 };
 
 export function messageThreadReducer(
@@ -115,6 +119,12 @@ export function messageThreadReducer(
         ),
       };
 
+    case "assistant/toolCall":
+      return { ...state, activeToolName: action.payload.toolName };
+
+    case "assistant/toolResult":
+      return { ...state, activeToolName: null };
+
     case "assistant/citations":
       return {
         ...state,
@@ -129,6 +139,7 @@ export function messageThreadReducer(
       return {
         ...state,
         isSending: false,
+        activeToolName: null,
         messages: state.messages.map((message) =>
           message.id === action.tempId
             ? {
@@ -144,6 +155,7 @@ export function messageThreadReducer(
       return {
         ...state,
         isSending: false,
+        activeToolName: null,
         sendError: action.payload,
         messages: state.messages.filter(
           (message) =>
