@@ -12,10 +12,6 @@ export const AgentState = Annotation.Root({
     reducer: (_previousCitations, nextCitations) => nextCitations,
     default: () => [],
   }),
-  lastToolCall: Annotation<{ name: string; args: unknown } | null>({
-    reducer: (_previousToolCall, nextToolCall) => nextToolCall,
-    default: () => null,
-  }),
 });
 
 export type AgentStateType = typeof AgentState.State;

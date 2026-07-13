@@ -83,11 +83,11 @@ describe('agent graph', () => {
     const messagesService = { getRecentByUser } as unknown as MessagesService;
 
     const graph = buildAgentGraph({
-      tutorAnswerNode: buildTutorAnswerNode(
+      tutorNode: buildTutorAnswerNode(
         knowledgeService,
         asChatOpenAi(new FakeChatModel(options.tutorReplies ?? [])),
       ),
-      assistantAgentNode: buildAssistantAgentNode(
+      assistantNode: buildAssistantAgentNode(
         asChatOpenAi(new FakeChatModel(options.assistantReplies ?? [])),
         [
           buildSearchDocumentsTool(knowledgeService),
@@ -190,10 +190,6 @@ describe('agent graph', () => {
 
     expect(getRecentByUser).toHaveBeenCalledWith('user-1', 5);
     expect(result.messages.at(-1)?.text).toBe('You said hello.');
-    expect(result.lastToolCall).toEqual({
-      name: 'summarize_my_recent_messages',
-      args: { limit: 5 },
-    });
   });
 
   it('recovers from a request for a tool that does not exist', async () => {

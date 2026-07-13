@@ -5,8 +5,8 @@ import { AgentState, type AgentStateType } from './agent.state';
 
 const routeByConversationType = (
   state: AgentStateType,
-): 'tutorAnswer' | 'assistantAgent' =>
-  state.conversationType === 'tutor' ? 'tutorAnswer' : 'assistantAgent';
+): 'tutor' | 'assistant' =>
+  state.conversationType === 'tutor' ? 'tutor' : 'assistant';
 
 export type AgentNode = (
   state: AgentStateType,
@@ -14,19 +14,19 @@ export type AgentNode = (
 ) => Promise<Partial<AgentStateType>>;
 
 export const buildAgentGraph = (dependencies: {
-  tutorAnswerNode: AgentNode;
-  assistantAgentNode: AgentNode;
+  tutorNode: AgentNode;
+  assistantNode: AgentNode;
   checkpointer: BaseCheckpointSaver;
 }) =>
   new StateGraph(AgentState)
-    .addNode('tutorAnswer', dependencies.tutorAnswerNode)
-    .addNode('assistantAgent', dependencies.assistantAgentNode)
+    .addNode('tutor', dependencies.tutorNode)
+    .addNode('assistant', dependencies.assistantNode)
     .addConditionalEdges(START, routeByConversationType, [
-      'tutorAnswer',
-      'assistantAgent',
+      'tutor',
+      'assistant',
     ])
-    .addEdge('tutorAnswer', END)
-    .addEdge('assistantAgent', END)
+    .addEdge('tutor', END)
+    .addEdge('assistant', END)
     .compile({ checkpointer: dependencies.checkpointer });
 
 export type AgentGraph = ReturnType<typeof buildAgentGraph>;

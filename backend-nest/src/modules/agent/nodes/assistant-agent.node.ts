@@ -29,7 +29,6 @@ export const buildAssistantAgentNode = (
     runConfig: LangGraphRunnableConfig,
   ): Promise<Partial<AgentStateType>> => {
     const messagesProducedThisTurn: BaseMessage[] = [];
-    let lastToolCall: AgentStateType['lastToolCall'] = null;
 
     for (
       let toolCallRound = 0;
@@ -52,10 +51,6 @@ export const buildAssistantAgentNode = (
       }
 
       for (const requestedToolCall of requestedToolCalls) {
-        lastToolCall = {
-          name: requestedToolCall.name,
-          args: requestedToolCall.args,
-        };
         const matchingTool = availableToolsByName.get(requestedToolCall.name);
         const toolExecutionResult = matchingTool
           ? ((await matchingTool.invoke(
@@ -72,6 +67,6 @@ export const buildAssistantAgentNode = (
       }
     }
 
-    return { messages: messagesProducedThisTurn, lastToolCall };
+    return { messages: messagesProducedThisTurn };
   };
 };

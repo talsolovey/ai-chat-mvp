@@ -48,7 +48,6 @@ const buildUseCaseUnderTest = (options: {
         values: {
           messages: options.finalStateMessages,
           citations: options.finalStateCitations ?? [],
-          lastToolCall: null,
         },
       }),
   } as unknown as AgentGraph;

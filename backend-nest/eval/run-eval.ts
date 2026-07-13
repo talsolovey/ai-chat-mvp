@@ -72,11 +72,11 @@ async function runEvalPrompts(): Promise<void> {
     });
 
     const agentGraph = buildAgentGraph({
-      tutorAnswerNode: buildTutorAnswerNode(
+      tutorNode: buildTutorAnswerNode(
         emptyKnowledgeServiceStub,
         chatModel,
       ),
-      assistantAgentNode: buildAssistantAgentNode(chatModel, [
+      assistantNode: buildAssistantAgentNode(chatModel, [
         buildSearchDocumentsTool(emptyKnowledgeServiceStub),
         buildSummarizeMyRecentMessagesTool(messagesService),
       ]),

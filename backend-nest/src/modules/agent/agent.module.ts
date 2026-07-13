@@ -56,11 +56,11 @@ const TUTOR_TEMPERATURE = 0.2;
         });
 
         return buildAgentGraph({
-          tutorAnswerNode: buildTutorAnswerNode(
+          tutorNode: buildTutorAnswerNode(
             knowledgeService,
             tutorChatModel,
           ),
-          assistantAgentNode: buildAssistantAgentNode(assistantChatModel, [
+          assistantNode: buildAssistantAgentNode(assistantChatModel, [
             buildSearchDocumentsTool(knowledgeService),
             buildSummarizeMyRecentMessagesTool(messagesService),
           ]),
