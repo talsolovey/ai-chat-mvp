@@ -29,6 +29,13 @@
   padding: 4px 0 8px;
 }
 
+.toolProgress {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-style: italic;
+  margin: 4px 0 0;
+}
+
 .messageList {
   list-style: none;
   padding: 0;

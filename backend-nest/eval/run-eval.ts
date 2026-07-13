@@ -1,11 +1,18 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { NestFactory } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
+import { ChatOpenAI } from '@langchain/openai';
+import { HumanMessage } from '@langchain/core/messages';
+import { MemorySaver } from '@langchain/langgraph';
 import { EvalModule } from './eval.module';
-import { LlmProvider } from '../src/modules/llm/llm-provider';
 import { MessagesService } from '../src/modules/messages/messages.service';
-import { ASSISTANT_SYSTEM_PROMPT } from '../src/modules/llm/prompts/assistant.prompt';
-import { createSummarizeMyRecentMessagesTool } from '../src/application/tools/summarize-my-recent-messages.tool';
+import type { KnowledgeService } from '../src/modules/knowledge/knowledge.service';
+import { buildAgentGraph } from '../src/modules/agent/agent.graph';
+import { buildTutorAnswerNode } from '../src/modules/agent/nodes/tutor-answer.node';
+import { buildAssistantAgentNode } from '../src/modules/agent/nodes/assistant-agent.node';
+import { buildSearchDocumentsTool } from '../src/modules/agent/tools/search-documents.tool';
+import { buildSummarizeMyRecentMessagesTool } from '../src/modules/agent/tools/summarize-my-recent-messages.tool';
 
 type EvalPrompt = {
   name: string;
@@ -22,6 +29,10 @@ const SEED_MESSAGE_CONTENTS: readonly string[] = [
 
 const EVAL_AUTHENTICATED_USER_ID = 'eval-user';
 const EVAL_CONVERSATION_ID = 'eval-conversation';
+
+const emptyKnowledgeServiceStub = {
+  retrieveRelevantChunks: () => Promise.resolve([]),
+} as unknown as KnowledgeService;
 
 async function runEvalPrompts(): Promise<void> {
   if (!process.env.OPENAI_API_KEY) {
@@ -42,7 +53,7 @@ async function runEvalPrompts(): Promise<void> {
   );
 
   try {
-    const llmProvider = applicationContext.get(LlmProvider);
+    const configService = applicationContext.get(ConfigService);
     const messagesService = applicationContext.get(MessagesService);
 
     for (const seedMessageContent of SEED_MESSAGE_CONTENTS) {
@@ -53,30 +64,47 @@ async function runEvalPrompts(): Promise<void> {
       );
     }
 
-    const userScopedTools = [
-      createSummarizeMyRecentMessagesTool(
-        { messagesService },
-        EVAL_AUTHENTICATED_USER_ID,
-      ),
-    ];
+    const chatModel = new ChatOpenAI({
+      apiKey: configService.get<string>('llm.apiKey'),
+      model: configService.get<string>('llm.model'),
+      maxTokens: configService.get<number>('llm.maxTokens'),
+      temperature: configService.get<number>('llm.temperature'),
+    });
 
-    for (const evalPrompt of evalPrompts) {
-      let accumulatedReplyText = '';
-      for await (const streamEvent of llmProvider.streamAssistantReply({
-        systemPrompt: ASSISTANT_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: evalPrompt.prompt }],
-        tools: userScopedTools,
-      })) {
-        if (streamEvent.type === 'token') {
-          accumulatedReplyText += streamEvent.text;
-        }
-      }
+    const agentGraph = buildAgentGraph({
+      tutorNode: buildTutorAnswerNode(
+        emptyKnowledgeServiceStub,
+        chatModel,
+      ),
+      assistantNode: buildAssistantAgentNode(chatModel, [
+        buildSearchDocumentsTool(emptyKnowledgeServiceStub),
+        buildSummarizeMyRecentMessagesTool(messagesService),
+      ]),
+      checkpointer: new MemorySaver(),
+    });
+
+    for (const [evalPromptIndex, evalPrompt] of evalPrompts.entries()) {
+      const threadId = `assistant-eval-${evalPromptIndex}`;
+      const result = await agentGraph.invoke(
+        {
+          messages: [new HumanMessage(evalPrompt.prompt)],
+          conversationId: threadId,
+          conversationType: 'assistant',
+        },
+        {
+          configurable: {
+            thread_id: threadId,
+            userId: EVAL_AUTHENTICATED_USER_ID,
+          },
+        },
+      );
+      const assistantReplyText = result.messages.at(-1)?.text ?? '';
 
       console.log('═'.repeat(72));
       console.log(`# ${evalPrompt.name}`);
       console.log(`prompt:      ${evalPrompt.prompt}`);
       console.log(`expectation: ${evalPrompt.expectation}`);
-      console.log(`response:    ${accumulatedReplyText.trim()}`);
+      console.log(`response:    ${assistantReplyText.trim()}`);
     }
     console.log('═'.repeat(72));
   } finally {

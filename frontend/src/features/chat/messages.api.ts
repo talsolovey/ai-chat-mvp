@@ -55,6 +55,13 @@ function parseAssistantStreamEvent(
     };
   }
   if (
+    (candidateEvent.type === "tool_call" ||
+      candidateEvent.type === "tool_result") &&
+    typeof candidateEvent.name === "string"
+  ) {
+    return { type: candidateEvent.type, name: candidateEvent.name };
+  }
+  if (
     candidateEvent.type === "error" &&
     typeof candidateEvent.message === "string"
   ) {
@@ -92,6 +99,8 @@ export function getMessages(
 
 export type AssistantStreamHandlers = {
   onToken: (tokenText: string) => void;
+  onToolCall?: (toolName: string) => void;
+  onToolResult?: (toolName: string) => void;
   onCitations: (citations: Citation[]) => void;
   onDone: (completedMessage: { messageId: string; sentAt: string }) => void;
   onError?: (errorMessage: string) => void;
@@ -186,6 +195,10 @@ function parseAndDispatchServerSentEventFrame(
 
   if (streamEvent.type === "token") {
     streamHandlers.onToken(streamEvent.text);
+  } else if (streamEvent.type === "tool_call") {
+    streamHandlers.onToolCall?.(streamEvent.name);
+  } else if (streamEvent.type === "tool_result") {
+    streamHandlers.onToolResult?.(streamEvent.name);
   } else if (streamEvent.type === "citations") {
     streamHandlers.onCitations(streamEvent.citations);
   } else if (streamEvent.type === "done") {

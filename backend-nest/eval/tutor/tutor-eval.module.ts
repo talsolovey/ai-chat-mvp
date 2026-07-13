@@ -2,11 +2,13 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import llmConfig from '../../src/config/llm.config';
+import { CommonModule } from '../../src/common/common.module';
 import { KnowledgeModule } from '../../src/modules/knowledge/knowledge.module';
-import { LlmModule } from '../../src/modules/llm/llm.module';
+import { AgentModule } from '../../src/modules/agent/agent.module';
 
 @Module({
   imports: [
+    CommonModule,
     ConfigModule.forRoot({ isGlobal: true, load: [llmConfig] }),
     MongooseModule.forRootAsync({
       inject: [ConfigService],
@@ -14,7 +16,7 @@ import { LlmModule } from '../../src/modules/llm/llm.module';
         uri: configService.get<string>('MONGO_URI'),
       }),
     }),
-    LlmModule,
+    AgentModule,
     KnowledgeModule,
   ],
 })

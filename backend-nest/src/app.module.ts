@@ -12,6 +12,7 @@ import llmConfig from './config/llm.config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { LlmModule } from './modules/llm/llm.module';
 import { KnowledgeModule } from './modules/knowledge/knowledge.module';
+import { AgentModule } from './modules/agent/agent.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { KnowledgeModule } from './modules/knowledge/knowledge.module';
     AuthModule,
     LlmModule,
     KnowledgeModule,
+    AgentModule,
   ],
   controllers: [AppController],
 })

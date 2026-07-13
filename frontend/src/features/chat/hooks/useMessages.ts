@@ -133,6 +133,21 @@ export function useMessages(
               payload: { id: assistantMessageTempId, text: tokenText },
             });
           },
+          onToolCall: (toolName) => {
+            if (activeConversationIdRef.current !== conversationId) {
+              return;
+            }
+            dispatch({
+              type: "assistant/toolCall",
+              payload: { toolName },
+            });
+          },
+          onToolResult: () => {
+            if (activeConversationIdRef.current !== conversationId) {
+              return;
+            }
+            dispatch({ type: "assistant/toolResult" });
+          },
           onCitations: (citations) => {
             if (activeConversationIdRef.current !== conversationId) {
               return;
